@@ -1,0 +1,38 @@
+export const heroSlides = [
+  {
+    id: "sale",
+    image: "/international.webp",
+    alt: "Sale upto 70% off",
+    title: "SALE",
+    subtitle: "UPTO 70% OFF",
+    link: "/collections/sale-1",
+    button: null,
+  },
+  {
+    id: "buy-4",
+    image: "/sale.webp",
+    alt: "Buy 4 dress get 1 free",
+    title: "BUY 4 DRESS GET 1 FREE",
+    subtitle: null,
+    link: "/collections/sale-1",
+    button: null,
+  },
+  {
+    id: "maahi-ii",
+    image: "/free.webp",
+    alt: "Maahi II Luxury Eid Pret",
+    title: "Maahi II",
+    subtitle: "Luxury Eid Pret",
+    link: "/collections/maahi-ii-luxury-eid-pret",
+    button: "SHOP NOW",
+  },
+  {
+    id: "maahi-iii",
+    image: "/maahi.webp",
+    alt: "Maahi II Luxury Eid Pret",
+    title: "Maahi II",
+    subtitle: "Luxury Eid Pret",
+    link: "/collections/maahi-ii-luxury-eid-pret",
+    button: "SHOP NOW",
+  },
+];
