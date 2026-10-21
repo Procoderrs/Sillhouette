@@ -5,12 +5,12 @@ import { Filters, SortSelect } from "@/components/collection/Filters";
 import Pagination from "@/components/ui/Pagination";
 import { products } from "@/data/products";
 import { saleProducts } from "@/data/sale";
-
+import { Suspense } from "react";
 const PER_PAGE = 24;
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const uniq = (a) => [...new Set(a)];
 
-export default async function CollectionPage({ params, searchParams }) {
+async function CollectionPage({ params, searchParams }) {
 	const { slug } = await params;
 	const sp = await searchParams;
 
@@ -121,5 +121,12 @@ export default async function CollectionPage({ params, searchParams }) {
 				basePath={`/collections/${slug}`}
 			/>
 		</section>
+	);
+}
+export default function CollectionContent(props) {
+	return (
+		<Suspense fallback={<div className="site-container py-24" />}>
+			<CollectionContent {...props} />
+		</Suspense>
 	);
 }
