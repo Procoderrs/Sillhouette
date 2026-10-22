@@ -2,6 +2,7 @@
 
 import MobileMenu from "./MobileMenu";
 import MegaMenu from "./MegaMenu";
+import SearchOverlay from "./SearchOverlay";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -10,12 +11,18 @@ import { RiArrowDropDownLine } from "react-icons/ri";
 import { menu, topLinks } from "@/data/menu";
 import { useCartStore } from "@/store/cartStore";
 import { useCartDrawer } from "@/store/cartDrawerStore";
+
+const navLink =
+	"relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-full after:origin-left after:scale-x-0 after:bg-black after:transition-transform after:duration-300 after:content-[''] hover:after:scale-x-100";
+
 export default function Header() {
 	const [openSlug, setOpenSlug] = useState(null);
 	const [mounted, setMounted] = useState(false);
+	const [searchOpen, setSearchOpen] = useState(false);
 
 	const count = useCartStore((s) => s.items.reduce((n, i) => n + i.qty, 0));
 	const setCartOpen = useCartDrawer((s) => s.setOpen);
+
 	useEffect(() => setMounted(true), []);
 
 	const [sale, maahi, ...otherLinks] = topLinks;
@@ -31,7 +38,10 @@ export default function Header() {
 			onMouseEnter={() => setOpenSlug(item.slug)}
 			onMouseLeave={() => setOpenSlug(null)}
 		>
-			<Link href={`/collections/${item.slug}`} className="flex items-center">
+			<Link
+				href={`/collections/${item.slug}`}
+				className={`${navLink} flex items-center`}
+			>
 				{item.label}
 				<RiArrowDropDownLine size={22} className="-ml-1" />
 			</Link>
@@ -49,22 +59,30 @@ export default function Header() {
 						width={160}
 						height={48}
 						priority
-						className="w-[160px] h-auto"
-						style={{ height: "auto" }}
+						style={{ width: 160, height: "auto" }}
 					/>
 				</Link>
 
 				<nav className="hidden lg:flex flex-1 flex-wrap items-center justify-center gap-x-5 gap-y-3 px-8 text-[15px] uppercase">
-					<Link href={`/collections/${sale.slug}`} className="blink text-sale">
+					<Link
+						href={`/collections/${sale.slug}`}
+						className={`${navLink} blink text-sale`}
+					>
 						{sale.label}
 					</Link>
 
-					<Link href={`/collections/${maahi.slug}`}>{maahi.label}</Link>
+					<Link href={`/collections/${maahi.slug}`} className={navLink}>
+						{maahi.label}
+					</Link>
 
 					{dropdowns.map(renderDropdown)}
 
 					{otherLinks.map((l) => (
-						<Link key={l.slug} href={l.href ?? `/collections/${l.slug}`}>
+						<Link
+							key={l.slug}
+							href={l.href ?? `/collections/${l.slug}`}
+							className={navLink}
+						>
 							{l.label}
 						</Link>
 					))}
@@ -74,13 +92,21 @@ export default function Header() {
 
 				<div className="flex items-center gap-4">
 					<MobileMenu />
+
 					<Link href="/account/login" aria-label="Account">
 						<User size={20} strokeWidth={1.5} />
 					</Link>
-					<button aria-label="Search">
+
+					<button
+						type="button"
+						onClick={() => setSearchOpen(true)}
+						aria-label="Search"
+					>
 						<Search size={20} strokeWidth={1.5} />
 					</button>
+
 					<button
+						type="button"
 						onClick={() => setCartOpen(true)}
 						aria-label="Cart"
 						className="relative"
@@ -92,6 +118,8 @@ export default function Header() {
 					</button>
 				</div>
 			</div>
+
+			<SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
 		</header>
 	);
 }

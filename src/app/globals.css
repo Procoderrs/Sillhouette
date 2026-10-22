@@ -160,4 +160,54 @@
 		background: #000;
 		cursor: pointer;
 	}
+
+	.nav-link {
+		position: relative;
+	}
+	.nav-link::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -4px;
+		height: 2px;
+		background: #000;
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform 0.35s ease;
+	}
+	.nav-link:hover::after {
+		transform: ScaleX(1);
+	}
+
+	@layer base {
+		button,
+		a,
+		[role="button"],
+		select,
+		summary,
+		label[for],
+		input[type="checkbox"],
+		input[type="radio"] {
+			cursor: pointer;
+		}
+
+		button:disabled {
+			cursor: not-allowed;
+		}
+	}
+
+	@layer components {
+		.btn-primary,
+		.btn-sale {
+			transition:
+				opacity 0.3s ease,
+				background-color 0.3s ease;
+		}
+
+		.btn-primary:hover,
+		.btn-sale:hover {
+			opacity: 0.85;
+		}
+	}
 }
