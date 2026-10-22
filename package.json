@@ -1,27 +1,27 @@
 {
-  "name": "silhouette",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "lucide-react": "^1.59.0",
-    "next": "16.4.2",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "react-icons": "^5.7.0",
-    "swiper": "^14.3.0",
-    "zustand": "^5.0.15"
-  },
-  "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
-    "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.2",
-    "tailwindcss": "^4"
-  }
+	"name": "silhouette",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "NODE_OPTIONS=--max-old-space-size=4096 next build",
+		"start": "next start",
+		"lint": "eslint"
+	},
+	"dependencies": {
+		"lucide-react": "^1.59.0",
+		"next": "16.4.2",
+		"react": "19.3.0",
+		"react-dom": "19.3.0",
+		"react-icons": "^5.7.0",
+		"swiper": "^14.3.0",
+		"zustand": "^5.0.15"
+	},
+	"devDependencies": {
+		"@tailwindcss/turbopack": "^4",
+		"babel-plugin-react-compiler": "1.0.0",
+		"eslint": "^9",
+		"eslint-config-next": "16.4.2",
+		"tailwindcss": "^4"
+	}
 }

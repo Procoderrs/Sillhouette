@@ -105,7 +105,7 @@ async function CollectionPage({ params, searchParams }) {
 			<p className="mt-6 text-[15px]">{list.length} products</p>
 
 			{items.length ? (
-				<div className="mt-6 grid grid-cols-2 gap-x-[17px] gap-y-10 lg:grid-cols-4">
+				<div className="mt-6 grid grid-cols-2 gap-x-4.25 gap-y-10 lg:grid-cols-4">
 					{items.map((p) => (
 						<ProductCard key={p.id} product={p} />
 					))}
