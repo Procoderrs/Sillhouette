@@ -38,7 +38,7 @@ export const products = [
 	...make("anarkali-bridal-24", "Anarkali", 8),
 	...make("noor-jahan-bridal-23", "Noor Jahan", 8),
 	...make("roshanara-bridal-22", "Roshanara", 8),
-	...make("Meeras - Formal Collection '25", "Meeras", 8),
+	...make("meeras", "Meeras", 8),
 	...make("zarqa", "Zarqa", 8),
 	...make("rivaj", "Rivaj", 8),
 	...make("rang-e-bahar", "Rang-e-Bahar", 8),
