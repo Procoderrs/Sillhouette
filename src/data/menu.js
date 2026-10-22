@@ -94,7 +94,7 @@ export const footerLinks = [
 	{ label: "Terms and Conditions", slug: "terms-and-conditions" },
 	{ label: "Brand Story", slug: "brand-story" },
 	{ label: "Shipping Policy", slug: "shipping-policy" },
-	{ label: "Blog", slug: "blog" },
+	/* { label: "Blog", slug: "blog", href: "/blogs" }, */
 	{ label: "Contact Us", slug: "contact" },
 	{ label: "FAQs", slug: "faqs" },
 ];

@@ -56,5 +56,16 @@ export const products = [
 	...make("nikkah", "Nikkah", 8),
 	...make("barat", "Barat", 8),
 	...make("walima", "Walima", 8),
+	{
+		...base,
+		id: "iris-rm-03",
+		name: "Iris",
+		slug: "iris-rm-03",
+		price: 44900,
+		collection: "best-sellers",
+		color: "blue",
+		style: "straight",
+		sizes: ["XS", "S", "M", "L", "XL"],
+	},
 	...make("pouches-clutches", "Pouch", 3),
 ];
