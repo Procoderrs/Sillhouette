@@ -31,7 +31,7 @@ export const menu = [
 		slug: "formal",
 		children: [
 			{ label: "Lumiere Luxury Formals '26", slug: "lumiere-luxury-formals26" },
-			...make("meeras", "Meeras", 8),
+			{ label: "Meeras", slug: "meeras" },
 			{ label: "Zarqa", slug: "zarqa" },
 			{ label: "Rivaj", slug: "rivaj" },
 			{ label: "Rang-e-Bahar", slug: "rang-e-bahar" },
