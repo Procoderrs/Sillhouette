@@ -13,14 +13,14 @@ export default function PriceSlider({ min, max }) {
 
 	const [low, setLow] = useState(Number(sp.get("min")) || min);
 	const [high, setHigh] = useState(Number(sp.get("max")) || max);
-	const mounted = useRef(false);
+
+	// Sirf user ne slider move kiya ho to hi URL update hoga
+	const userChanged = useRef(false);
 
 	// Drag khatam hone ke 400ms baad URL update hoga
 	useEffect(() => {
-		if (!mounted.current) {
-			mounted.current = true;
-			return;
-		}
+		if (!userChanged.current) return;
+
 		const t = setTimeout(() => {
 			const q = new URLSearchParams(sp.toString());
 			if (low <= min) q.delete("min");
@@ -31,12 +31,21 @@ export default function PriceSlider({ min, max }) {
 			const s = q.toString();
 			router.replace(s ? `${pathname}?${s}` : pathname, { scroll: false });
 		}, 400);
+
 		return () => clearTimeout(t);
 	}, [low, high]);
 
 	const pct = (v) => ((v - min) / (max - min || 1)) * 100;
-	const onLow = (e) => setLow(Math.min(Number(e.target.value), high - STEP));
-	const onHigh = (e) => setHigh(Math.max(Number(e.target.value), low + STEP));
+
+	const onLow = (e) => {
+		userChanged.current = true;
+		setLow(Math.min(Number(e.target.value), high - STEP));
+	};
+
+	const onHigh = (e) => {
+		userChanged.current = true;
+		setHigh(Math.max(Number(e.target.value), low + STEP));
+	};
 
 	return (
 		<div className="border-b border-line py-5">
