@@ -10,7 +10,7 @@ const PER_PAGE = 24;
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const uniq = (a) => [...new Set(a)];
 
-async function CollectionPage({ params, searchParams }) {
+async function CollectionContent({ params, searchParams }) {
 	const { slug } = await params;
 	const sp = await searchParams;
 
@@ -123,7 +123,7 @@ async function CollectionPage({ params, searchParams }) {
 		</section>
 	);
 }
-export default function CollectionContent(props) {
+export default function CollectionPage(props) {
 	return (
 		<Suspense fallback={<div className="site-container py-24" />}>
 			<CollectionContent {...props} />
