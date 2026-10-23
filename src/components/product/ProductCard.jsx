@@ -1,6 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
+import RevealImage from "@/components/ui/RevealImage";
+
+const SIZES = "(min-width: 1024px) 25vw, 50vw";
 
 export default function ProductCard({ product: p }) {
 	const onSale = p.salePrice && p.salePrice < p.price;
@@ -11,29 +13,31 @@ export default function ProductCard({ product: p }) {
 
 	return (
 		<Link href={`/products/${p.slug}`} className="group block">
-			<div className="relative aspect-[3/4] overflow-hidden bg-soft-2">
+			<div className="relative aspect-3/4 overflow-hidden bg-soft-2">
 				{p.badge && (
 					<span
 						className={`absolute top-0 z-10 px-2 py-1 text-[11px] uppercase ${
-							isSaleBadge ? " bg-black text-white" : " bg-soft-3 text-black"
+							isSaleBadge ? "bg-black text-white" : "bg-soft-3 text-black"
 						}`}
 					>
 						{isSaleBadge ? "Sale" : p.badge}
 					</span>
 				)}
-				<Image
+
+				{/* Pehli image: hover par fade out */}
+				<RevealImage
 					src={p.images[0]}
 					alt={p.name}
-					fill
-					sizes="(min-width: 1024px) 25vw, 50vw"
-					className="object-cover transition-opacity duration-300 group-hover:opacity-0"
+					sizes={SIZES}
+					className="transition-opacity duration-300 group-hover:opacity-0"
 				/>
-				<Image
+
+				{/* Doosri image: hover par fade in */}
+				<RevealImage
 					src={p.images[1]}
 					alt=""
-					fill
-					sizes="(min-width: 1024px) 25vw, 50vw"
-					className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+					sizes={SIZES}
+					className="opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 				/>
 			</div>
 
