@@ -1,0 +1,38 @@
+{
+	"name": "Layl",
+	"sku": "RSP-04",
+	"description": "Red embroidered shirt (test).",
+	"collection": "best-sellers",
+	"childCollection": "",
+	"color": "Red",
+	"style": "Straight",
+	"images": ["https://example.com/layl-1.jpg"],
+	"unstitchedDetails": "Unstitched details (test).",
+	"readyMadeDetails": "Ready-made details (test).",
+	"onSale": true,
+	"saleNote": "Sales items will not be return, exchange or refunded.",
+	"isNew": true,
+	"variants": [
+		{
+			"size": "Unstitched",
+			"sku": "RSP-04-U",
+			"price": 28900,
+			"salePrice": 24900,
+			"stock": 3
+		},
+		{
+			"size": "S",
+			"sku": "RSP-04-S",
+			"price": 34900,
+			"salePrice": 29900,
+			"stock": 4
+		},
+		{
+			"size": "M",
+			"sku": "RSP-04-M",
+			"price": 36900,
+			"salePrice": 31900,
+			"stock": 2
+		}
+	]
+}

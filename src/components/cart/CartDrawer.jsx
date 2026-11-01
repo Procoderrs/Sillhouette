@@ -1,151 +1,189 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { X, Minus, Plus, Trash2 } from "lucide-react";
-import { useCartStore } from "@/store/cartStore";
-import { useCartDrawer } from "@/store/cartDrawerStore";
 import { formatPrice } from "@/lib/utils";
+import { useCartStore, lineKeyOf, toApiItem } from "@/store/cartStore";
+import { useCartDrawer } from "@/store/cartDrawerStore";
+
+const JSON_HEADERS = { "Content-Type": "application/json" };
 
 export default function CartDrawer() {
 	const open = useCartDrawer((s) => s.open);
 	const setOpen = useCartDrawer((s) => s.setOpen);
-
 	const items = useCartStore((s) => s.items);
 	const updateQty = useCartStore((s) => s.updateQty);
 	const removeItem = useCartStore((s) => s.removeItem);
 
-	const [mounted, setMounted] = useState(false);
+	const [quote, setQuote] = useState(null);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
 
-	useEffect(() => setMounted(true), []);
+	const itemsKey = JSON.stringify(items);
 
-	// Escape dabane par band ho
 	useEffect(() => {
-		const onKey = (e) => e.key === "Escape" && setOpen(false);
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, [setOpen]);
+		if (items.length === 0) {
+			setQuote(null);
+			return;
+		}
 
-	// Drawer khula ho to page scroll band
-	useEffect(() => {
-		document.body.style.overflow = open ? "hidden" : "";
-	}, [open]);
+		let cancelled = false;
+		setLoading(true);
+		setError("");
+
+		fetch("/api/cart/quote", {
+			method: "POST",
+			headers: JSON_HEADERS,
+			body: JSON.stringify({ items: items.map(toApiItem) }),
+		})
+			.then(async (res) => {
+				const data = await res.json();
+				if (cancelled) return;
+				if (!res.ok)
+					throw new Error(data.message || "Cart could not be loaded");
+				setQuote(data.data);
+			})
+			.catch((err) => {
+				if (!cancelled) setError(err.message);
+			})
+			.finally(() => {
+				if (!cancelled) setLoading(false);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [itemsKey]);
 
 	if (!open) return null;
 
-	// localStorage server par nahi hota, is liye mount ke baad hi items dikhayein
-	const list = mounted ? items : [];
-	const subtotal = list.reduce(
-		(n, i) => n + (i.salePrice ?? i.price) * i.qty,
-		0,
-	);
+	const lines = quote?.items ?? [];
 
 	return (
-		<div className="fixed inset-0 z-[60]">
+		<div className="fixed inset-0 z-50">
 			<div
 				className="absolute inset-0 bg-black/40"
 				onClick={() => setOpen(false)}
 			/>
 
-			<aside className="absolute right-0 top-0 flex h-full w-full max-w-[400px] flex-col bg-white">
+			<aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white">
 				<div className="flex items-center justify-between border-b border-line px-6 py-5">
-					<h2 className="text-[20px] font-semibold tracking-[0.15em]">CART</h2>
-					<button onClick={() => setOpen(false)} aria-label="Close cart">
-						<X size={22} strokeWidth={1.5} />
+					<h2 className="text-[16px] uppercase tracking-[0.15em]">Your cart</h2>
+					<button
+						type="button"
+						onClick={() => setOpen(false)}
+						aria-label="Close"
+					>
+						<X size={20} />
 					</button>
 				</div>
 
-				{list.length === 0 ? (
-					<div className="px-6 py-8">
-						<p className="text-[15px]">Your cart is currently empty.</p>
-						<Link
-							href="/"
-							onClick={() => setOpen(false)}
-							className="btn-primary mt-6 inline-block"
-						>
-							Continue shopping
-						</Link>
-					</div>
-				) : (
-					<>
-						<ul className="flex-1 divide-y divide-line overflow-y-auto px-6">
-							{list.map((item) => (
-								<li key={`${item.id}-${item.size}`} className="flex gap-4 py-5">
-									<div className="relative h-28 w-20 shrink-0 bg-soft">
-										<Image
-											src={item.image}
-											alt={item.name}
-											fill
-											sizes="80px"
-											className="object-cover"
-										/>
+				<div className="flex-1 overflow-y-auto px-6 py-4">
+					{items.length === 0 && (
+						<p className="text-[14px] text-neutral-500">Cart khali hai.</p>
+					)}
+
+					{loading && lines.length === 0 && (
+						<p className="text-[14px] text-neutral-500">Loading...</p>
+					)}
+
+					{error && <p className="text-[14px] text-sale">{error}</p>}
+
+					<ul className="space-y-6">
+						{lines.map((line) => {
+							const key = lineKeyOf(line);
+							const unavailable = line.status === "unavailable";
+							const canIncrease = !unavailable && line.qty < line.stock;
+
+							return (
+								<li key={key} className="flex gap-4">
+									<div className="h-28 w-20 shrink-0 bg-soft-2">
+										{line.image && (
+											<img
+												src={line.image}
+												alt={line.name}
+												className="h-full w-full object-cover"
+											/>
+										)}
 									</div>
 
-									<div className="flex flex-1 flex-col text-[14px]">
-										<div className="flex justify-between gap-2">
-											<p className="uppercase tracking-[0.1em]">{item.name}</p>
-											<button
-												onClick={() => removeItem(item.id, item.size)}
-												aria-label="Remove item"
-											>
-												<Trash2 size={16} strokeWidth={1.5} />
-											</button>
-										</div>
+									<div className="flex-1 space-y-1 text-[13px]">
+										<p className="uppercase">{line.name}</p>
+										{line.variant && (
+											<p className="text-neutral-500">{line.variant}</p>
+										)}
+										<p>{formatPrice(line.price)}</p>
 
-										<p className="mt-1 text-black/60">Size: {item.size}</p>
-										<p className="mt-1">
-											{formatPrice(item.salePrice ?? item.price)}
-										</p>
+										{line.status !== "ok" && (
+											<p className="text-[12px] text-sale">
+												{line.message ??
+													(line.status === "out_of_stock"
+														? "Out of stock"
+														: `Only ${line.stock} left`)}
+											</p>
+										)}
 
-										<div className="mt-auto flex w-fit items-center border border-line">
+										<div className="flex items-center gap-3 pt-2">
 											<button
-												onClick={() =>
-													updateQty(item.id, item.size, item.qty - 1)
-												}
-												disabled={item.qty <= 1}
-												className="px-3 py-1 disabled:opacity-30"
-												aria-label="Decrease quantity"
+												type="button"
+												disabled={unavailable || line.qty <= 1}
+												onClick={() => updateQty(key, line.qty - 1)}
+												className="disabled:opacity-30"
 											>
 												<Minus size={14} />
 											</button>
-											<span className="px-3">{item.qty}</span>
+											<span className="w-6 text-center">{line.qty}</span>
 											<button
-												onClick={() =>
-													updateQty(item.id, item.size, item.qty + 1)
-												}
-												className="px-3 py-1"
-												aria-label="Increase quantity"
+												type="button"
+												disabled={!canIncrease}
+												onClick={() => updateQty(key, line.qty + 1)}
+												className="disabled:opacity-30"
 											>
 												<Plus size={14} />
+											</button>
+											<button
+												type="button"
+												onClick={() => removeItem(key)}
+												aria-label="Remove"
+												className="ml-3"
+											>
+												<Trash2 size={14} />
 											</button>
 										</div>
 									</div>
 								</li>
-							))}
-						</ul>
+							);
+						})}
+					</ul>
+				</div>
 
-						<div className="border-t border-line px-6 py-5">
-							<div className="mb-4 flex justify-between text-[15px]">
-								<span className="uppercase tracking-[0.1em]">Subtotal</span>
-								<span>{formatPrice(subtotal)}</span>
-							</div>
-							<Link
-								href="/checkout"
-								onClick={() => setOpen(false)}
-								className="btn-primary block w-full text-center"
-							>
-								Checkout
-							</Link>
-							<Link
-								href="/cart"
-								onClick={() => setOpen(false)}
-								className="mt-3 block text-center text-[14px] underline"
-							>
-								View cart
-							</Link>
+				{quote && items.length > 0 && (
+					<div className="space-y-3 border-t border-line px-6 py-5 text-[14px]">
+						<div className="flex justify-between">
+							<span>Subtotal</span>
+							<span>{formatPrice(quote.subtotal)}</span>
 						</div>
-					</>
+						<div className="flex justify-between">
+							<span>Express</span>
+							<span>{formatPrice(quote.expressTotal)}</span>
+						</div>
+						<div className="flex justify-between font-semibold">
+							<span>Total</span>
+							<span>{formatPrice(quote.total)}</span>
+						</div>
+						<p className="text-[12px] text-neutral-500">
+							Shipping calculated at checkout.
+						</p>
+						<Link
+							href="/checkout"
+							onClick={() => setOpen(false)}
+							className="btn-primary block w-full text-center"
+						>
+							Checkout
+						</Link>
+					</div>
 				)}
 			</aside>
 		</div>

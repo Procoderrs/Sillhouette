@@ -42,7 +42,17 @@ function Col({ title, children }) {
 	);
 }
 
-export default function Footer() {
+export default function Footer({ settings = {} }) {
+	const socials = [
+		{ label: "Instagram", href: settings.instagram, Icon: FaInstagram },
+		{ label: "Facebook", href: settings.facebook, Icon: FaFacebook },
+		{ label: "YouTube", href: settings.youtube, Icon: FaYoutube },
+		{ label: "Pinterest", href: settings.pinterest, Icon: FaPinterest },
+		{ label: "TikTok", href: settings.tiktok, Icon: FaTiktok },
+	].filter((s) => s.href);
+
+	const email = settings.supportEmail || contact.email;
+
 	return (
 		<footer className="border-t border-line bg-white pt-4 pb-8 md:pt-14">
 			<div className="site-container grid md:grid-cols-2 md:gap-x-10 md:gap-y-12 lg:grid-cols-4">
@@ -97,8 +107,8 @@ export default function Footer() {
 						</p>
 						<p>
 							<strong>Email:</strong>{" "}
-							<a href={`mailto:${contact.email}`} className="underline">
-								{contact.email}
+							<a href={`mailto:${email}`} className="underline">
+								{email}
 							</a>
 						</p>
 					</div>
@@ -118,23 +128,22 @@ export default function Footer() {
 							/>
 							<Mail size={18} className="shrink-0" />
 						</form>
-						<div className="flex justify-center gap-5 md:justify-start">
-							<a href="#" aria-label="Instagram">
-								<FaInstagram size={20} />
-							</a>
-							<a href="#" aria-label="Facebook">
-								<FaFacebook size={20} />
-							</a>
-							<a href="#" aria-label="YouTube">
-								<FaYoutube size={20} />
-							</a>
-							<a href="#" aria-label="Pinterest">
-								<FaPinterest size={20} />
-							</a>
-							<a href="#" aria-label="TikTok">
-								<FaTiktok size={20} />
-							</a>
-						</div>
+
+						{socials.length > 0 && (
+							<div className="flex justify-center gap-5 md:justify-start">
+								{socials.map(({ label, href, Icon }) => (
+									<a
+										key={label}
+										href={href}
+										target="_blank"
+										rel="noreferrer"
+										aria-label={label}
+									>
+										<Icon size={20} />
+									</a>
+								))}
+							</div>
+						)}
 					</div>
 				</Col>
 			</div>
@@ -146,6 +155,9 @@ export default function Footer() {
 					<span className="border px-2 py-1">Visa</span>
 					<span className="border px-2 py-1">Mastercard</span>
 				</div>
+				{settings.footerNote && (
+					<p className="text-center text-[13px]">{settings.footerNote}</p>
+				)}
 				<p className="text-[13px]">Powered by Sillhouete</p>
 			</div>
 		</footer>

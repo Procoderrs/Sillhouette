@@ -1,0 +1,50 @@
+{
+	"name": "Nyah",
+	"sku": "RHF-4",
+	"description": "Test product",
+	"collection": "best-sellers",
+	"childCollection": "",
+	"color": "Lilac",
+	"style": "Straight",
+	"images": [],
+	"options": [
+		{ "name": "Size", "useInSku": true, "values": ["XS", "S"] },
+		{
+			"name": "Dupatta",
+			"useInSku": false,
+			"values": ["None", "Organza Ruffled dupatta"]
+		}
+	],
+	"variants": [
+		{
+			"attributes": [
+				{ "name": "Size", "value": "XS" },
+				{ "name": "Dupatta", "value": "None" }
+			],
+			"price": 71500,
+			"stock": 2
+		},
+		{
+			"attributes": [
+				{ "name": "Size", "value": "XS" },
+				{ "name": "Dupatta", "value": "Organza Ruffled dupatta" }
+			],
+			"price": 76500,
+			"stock": 1
+		},
+		{
+			"attributes": [
+				{ "name": "Size", "value": "S" },
+				{ "name": "Dupatta", "value": "None" }
+			],
+			"price": 71500,
+			"stock": 3
+		},
+		{
+			"attributes": [{ "name": "Size", "value": "S" }],
+			"price": 76500,
+			"stock": 0
+		}
+	],
+	"onSale": false
+}

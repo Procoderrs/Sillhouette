@@ -10,14 +10,14 @@ export default function ProductRow({ title, products, viewAll }) {
 				className="
     -mx-4 flex snap-x snap-mandatory gap-[17px] overflow-x-auto px-4 pb-3
     scroll-px-4 [scrollbar-width:thin] [scrollbar-color:#8a8a8a_#e8e8e1]
-    md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 md:pb-0
+    md:mx-0 md:grid md:grid-cols-3 md:gap-[22px] md:overflow-visible md:px-0 md:pb-0
     md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden
   "
 			>
 				{products.map((p) => (
 					<div
-						key={p.id}
-						className="w-[35%] shrink-0 snap-start sm:w-[30%] md:w-auto md:min-w-0"
+						key={p._id ?? p.id}
+						className="w-[72%] shrink-0 snap-start sm:w-[48%] md:w-auto md:min-w-0"
 					>
 						<ProductCard product={p} />
 					</div>

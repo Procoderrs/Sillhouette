@@ -5,47 +5,45 @@ import ShopByEvent from "@/components/home/ShopByEvent";
 import InstagramGrid from "@/components/home/InstagramGrid";
 import Newsletter from "@/components/home/Newsletter";
 import { heroSlides } from "@/data/hero";
-import { products } from "@/data/products";
 import { showcase } from "@/data/showcase";
+import { listHomeSections } from "@/services/homeSectionService";
+import { listProductsByCollection } from "@/services/productService";
 
-const byCollection = (c) => products.filter((p) => p.collection === c);
+export default async function HomePage() {
+	const sections = JSON.parse(JSON.stringify(await listHomeSections()));
 
-export default function HomePage() {
+	const rows = await Promise.all(
+		sections.map(async (s) => ({
+			...s,
+			products: JSON.parse(
+				JSON.stringify(await listProductsByCollection(s.collection)),
+			),
+		})),
+	);
+
 	return (
 		<>
 			<HeroSlider slides={heroSlides} />
 
-			<ProductRow
-				title="Maahi II Luxury Eid Pret"
-				products={byCollection("maahi-ii-luxury-eid-pret")}
-			/>
-
-			<ProductRow
-				title="Silk Solids 26"
-				products={byCollection("silk-solids-26")}
-			/>
-
-			<ProductRow
-				title="Raha Eid Pret"
-				products={byCollection("raha-eid-pret")}
-				viewAll={{
-					href: "/collections/raha-eid-pret",
-					label: "View All",
-					variant: "sale",
-				}}
-			/>
-
-			<ProductRow
-				title="Best Sellers"
-				products={byCollection("best-sellers")}
-				viewAll={{ href: "/collections/best-sellers", label: "View All" }}
-			/>
-
-			<ProductRow
-				title="Formals"
-				products={byCollection("formal")}
-				viewAll={{ href: "/collections/formal", label: "View All" }}
-			/>
+			{rows.map(
+				(row) =>
+					row.products.length > 0 && (
+						<ProductRow
+							key={row._id}
+							title={row.title}
+							products={row.products}
+							viewAll={
+								row.showViewAll
+									? {
+											href: `/collections/${row.collection}`,
+											label: "View All",
+											variant: row.viewAllStyle,
+										}
+									: undefined
+							}
+						/>
+					),
+			)}
 
 			<ShowcaseGrid {...showcase} />
 

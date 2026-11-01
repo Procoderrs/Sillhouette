@@ -1,22 +1,63 @@
 "use client";
 
 import MobileMenu from "./MobileMenu";
-import MegaMenu from "./MegaMenu";
 import SearchOverlay from "./SearchOverlay";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Search, User, ShoppingBag } from "lucide-react";
 import { RiArrowDropDownLine } from "react-icons/ri";
-import { menu, topLinks } from "@/data/menu";
 import { useCartStore } from "@/store/cartStore";
 import { useCartDrawer } from "@/store/cartDrawerStore";
 
 const navLink =
 	"relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-full after:origin-left after:scale-x-0 after:bg-black after:transition-transform after:duration-300 after:content-[''] hover:after:scale-x-100";
 
-export default function Header() {
-	const [openSlug, setOpenSlug] = useState(null);
+// Parent item: children ho to hover par dropdown dikhega
+function NavItem({ item }) {
+	const [open, setOpen] = useState(false);
+	const children = item.children || [];
+
+	if (children.length === 0) {
+		return (
+			<Link href={`/collections/${item.slug}`} className={navLink}>
+				{item.name}
+			</Link>
+		);
+	}
+
+	return (
+		<div
+			className="relative"
+			onMouseEnter={() => setOpen(true)}
+			onMouseLeave={() => setOpen(false)}
+		>
+			<Link
+				href={`/collections/${item.slug}`}
+				className={`${navLink} flex items-center`}
+			>
+				{item.name}
+				<RiArrowDropDownLine size={22} className="-ml-1" />
+			</Link>
+
+			{open && (
+				<div className="absolute left-0 top-full z-30 min-w-[200px] border border-line bg-white py-3 shadow-sm">
+					{children.map((c) => (
+						<Link
+							key={c._id}
+							href={`/collections/${item.slug}/${c.slug}`}
+							className="block px-5 py-2 text-[14px] uppercase hover:bg-soft-2"
+						>
+							{c.name}
+						</Link>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
+export default function Header({ user, navigation = [] }) {
 	const [mounted, setMounted] = useState(false);
 	const [searchOpen, setSearchOpen] = useState(false);
 
@@ -25,29 +66,9 @@ export default function Header() {
 
 	useEffect(() => setMounted(true), []);
 
-	const [sale, maahi, ...otherLinks] = topLinks;
-
-	// Accessories screenshot mein sab se aakhir mein hai, is liye alag rakha hai
-	const accessories = menu.find((m) => m.label === "Accessories");
-	const dropdowns = menu.filter((m) => m.label !== "Accessories");
-
-	const renderDropdown = (item) => (
-		<div
-			key={item.slug}
-			className="relative"
-			onMouseEnter={() => setOpenSlug(item.slug)}
-			onMouseLeave={() => setOpenSlug(null)}
-		>
-			<Link
-				href={`/collections/${item.slug}`}
-				className={`${navLink} flex items-center`}
-			>
-				{item.label}
-				<RiArrowDropDownLine size={22} className="-ml-1" />
-			</Link>
-			{openSlug === item.slug && <MegaMenu item={item} />}
-		</div>
-	);
+	// Sale collection ka item alag, baki parents header mein tarteeb se
+	const saleItem = navigation.find((p) => p.isSale);
+	const parents = navigation.filter((p) => !p.isSale);
 
 	return (
 		<header className="bg-white border-b border-line">
@@ -64,37 +85,34 @@ export default function Header() {
 				</Link>
 
 				<nav className="hidden lg:flex flex-1 flex-wrap items-center justify-center gap-x-5 gap-y-3 px-8 text-[15px] uppercase">
-					<Link
-						href={`/collections/${sale.slug}`}
-						className={`${navLink} blink text-sale`}
-					>
-						{sale.label}
-					</Link>
-
-					<Link href={`/collections/${maahi.slug}`} className={navLink}>
-						{maahi.label}
-					</Link>
-
-					{dropdowns.map(renderDropdown)}
-
-					{otherLinks.map((l) => (
+					{saleItem && (
 						<Link
-							key={l.slug}
-							href={l.href ?? `/collections/${l.slug}`}
-							className={navLink}
+							href={`/collections/${saleItem.slug}`}
+							className={`${navLink} blink text-sale`}
 						>
-							{l.label}
+							{saleItem.name}
 						</Link>
-					))}
+					)}
 
-					{accessories && renderDropdown(accessories)}
+					{parents.map((item) => (
+						<NavItem key={item._id} item={item} />
+					))}
 				</nav>
 
 				<div className="flex items-center gap-4">
 					<MobileMenu />
 
-					<Link href="/account/login" aria-label="Account">
+					<Link
+						href={user ? "/account" : "/account/login"}
+						aria-label="Account"
+						className="flex items-center gap-2"
+					>
 						<User size={20} strokeWidth={1.5} />
+						{user && (
+							<span className="hidden text-[13px] uppercase md:inline">
+								{user.firstName}
+							</span>
+						)}
 					</Link>
 
 					<button

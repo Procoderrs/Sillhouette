@@ -2,7 +2,7 @@
 
 import MobileMenu from "./MobileMenu";
 import MegaMenu from "./MegaMenu";
-import SearchOverlay from "../../../components/layout/SearchOverLay";
+import SearchOverlay from "../../../components/layout/SearchOverlay";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -15,7 +15,7 @@ import { useCartDrawer } from "@/store/cartDrawerStore";
 const navLink =
 	"relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-full after:origin-left after:scale-x-0 after:bg-black after:transition-transform after:duration-300 after:content-[''] hover:after:scale-x-100";
 
-export default function Header() {
+export default function Header({ user }) {
 	const [openSlug, setOpenSlug] = useState(null);
 	const [mounted, setMounted] = useState(false);
 	const [searchOpen, setSearchOpen] = useState(false);
@@ -30,7 +30,7 @@ export default function Header() {
 	// Accessories screenshot mein sab se aakhir mein hai, is liye alag rakha hai
 	const accessories = menu.find((m) => m.label === "Accessories");
 	const dropdowns = menu.filter((m) => m.label !== "Accessories");
-
+	console.log("Header user:", user);
 	const renderDropdown = (item) => (
 		<div
 			key={item.slug}
@@ -93,10 +93,18 @@ export default function Header() {
 				<div className="flex items-center gap-4">
 					<MobileMenu />
 
-					<Link href="/account/login" aria-label="Account">
+					<Link
+						href={user ? "/account" : "/account/login"}
+						aria-label="Account"
+						className="flex items-center gap-2"
+					>
 						<User size={20} strokeWidth={1.5} />
+						{user && (
+							<span className="hidden text-[13px] uppercase md:inline">
+								{user.firstName}
+							</span>
+						)}
 					</Link>
-
 					<button
 						type="button"
 						onClick={() => setSearchOpen(true)}
