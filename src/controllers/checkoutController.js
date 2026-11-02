@@ -18,7 +18,21 @@ export async function checkoutCreate(request) {
 			return validationResponse(parsed.error.issues);
 		}
 
-		// baaqi code same rahe (session, createCheckout, return)
+		// Agar user logged in hai to uska id lein (guest ho to null)
+		let userId = null;
+		const token = request.cookies.get(COOKIE_NAME)?.value;
+		if (token) {
+			try {
+				const session = await verifyToken(token);
+				userId = session?.userId ?? session?.sub ?? session?.id ?? null;
+			} catch {
+				userId = null;
+			}
+		}
+
+		const result = await createCheckout({ ...parsed.data, userId });
+
+		return Response.json({ success: true, data: result }, { status: 201 });
 	} catch (err) {
 		console.error("CHECKOUT_ERROR:", err);
 		return errorResponse(err);
