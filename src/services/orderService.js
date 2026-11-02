@@ -67,6 +67,7 @@ export async function createCheckout({
 			name: l.name,
 			variant: l.variant,
 			image: l.image,
+			attributes: l.attributes ?? [],
 			qty: l.qty,
 			price: l.price,
 			express: l.express,
@@ -145,7 +146,8 @@ export async function markOrderPaid(session) {
 		);
 
 		if (idx === undefined || idx < 0) {
-			note = "Payment received. Variant nahi mila, stock manually check karein";
+			note =
+				"Payment received. Variant not found, please check stock manually.";
 			continue;
 		}
 
@@ -155,7 +157,8 @@ export async function markOrderPaid(session) {
 			{ $inc: { [`variants.${idx}.stock`]: -item.qty } },
 		);
 		if (res.modifiedCount === 0) {
-			note = "Payment received. Stock kam pad gaya, order review karein";
+			note =
+				"Payment received. Stock was insufficient, please review the order.";
 		}
 	}
 
