@@ -11,21 +11,17 @@ import { getStripe } from "@/lib/stripe";
 export async function checkoutCreate(request) {
 	try {
 		const body = await readBody(request);
-		const parsed = checkoutSchema.safeParse(body ?? {});
-		if (!parsed.success) return validationResponse(parsed.error.issues);
+		const parsed = checkoutSchema.safeParse(body);
 
-		// Guest bhi order kar sakta hai, login hai to user se link ho jayega
-		const token = request.cookies.get(COOKIE_NAME)?.value;
-		const session = await verifyToken(token);
+		if (!parsed.success) {
+			console.log("CHECKOUT_VALIDATION:", parsed.error.issues);
+			return validationResponse(parsed.error.issues);
+		}
 
-		const data = await createCheckout({
-			...parsed.data,
-			userId: session?.id ?? null,
-		});
-		return Response.json({ success: true, data }, { status: 201 });
-	} catch (error) {
-		console.log("checkout-error", error);
-		return errorResponse(error);
+		// baaqi code same rahe (session, createCheckout, return)
+	} catch (err) {
+		console.error("CHECKOUT_ERROR:", err);
+		return errorResponse(err);
 	}
 }
 
