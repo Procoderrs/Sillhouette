@@ -81,6 +81,7 @@ export default function CheckoutForm({ pkrPerUsd }) {
 				mode: "payment",
 				amount: Math.max(usdCents, 50),
 				currency: "usd",
+				paymentMethodTypes: ["card"],
 			}}
 		>
 			<CheckoutFields quote={quote} pkrPerUsd={pkrPerUsd} />
@@ -260,7 +261,12 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 						All transactions are secure and encrypted.
 					</p>
 					<div className="border border-neutral-300 bg-white p-4">
-						<PaymentElement />
+						<PaymentElement
+							options={{
+								wallets: { applePay: "never", googlePay: "never" },
+								paymentMethodOrder: ["card"],
+							}}
+						/>
 					</div>
 				</div>
 
