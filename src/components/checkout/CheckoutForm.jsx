@@ -19,7 +19,6 @@ const stripePromise = loadStripe(
 
 const PAYMENT_OPTIONS = {
 	wallets: { applePay: "never", googlePay: "never" },
-	paymentMethodOrder: ["card"],
 };
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -50,7 +49,6 @@ export default function CheckoutForm({ pkrPerUsd }) {
 			mode: "payment",
 			amount: Math.max(usdCents, 50),
 			currency: "usd",
-			paymentMethodTypes: ["card"],
 		}),
 		[usdCents],
 	);

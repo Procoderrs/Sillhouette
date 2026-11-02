@@ -84,7 +84,7 @@ export async function createCheckout({
 		{
 			amount: order.chargedUsdCents,
 			currency: "usd",
-			payment_method_types: ["card"],
+			automatic_payment_methods: { enabled: true, allow_redirects: "never" },
 			receipt_email: email,
 			metadata: { orderId: String(order._id) },
 		},
