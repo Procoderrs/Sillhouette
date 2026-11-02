@@ -214,7 +214,10 @@ export default function CheckoutForm({ pkrPerUsd }) {
 				<p className="text-[12px] uppercase tracking-[0.2em]">Order summary</p>
 
 				{quote?.items.map((l) => (
-					<div key={lineKeyOf(l)} className="flex justify-between gap-4">
+					<div
+						key={`${l.productId ?? "line"}-${i}`}
+						className="flex justify-between gap-4"
+					>
 						<span>
 							{l.name}
 							{l.variant && (
