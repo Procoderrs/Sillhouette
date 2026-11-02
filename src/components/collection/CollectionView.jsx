@@ -228,7 +228,7 @@ export default function CollectionView({
 
 					{visible.length === 0 ? (
 						<p className="py-20 text-center text-[14px] text-neutral-500">
-							Is filter ke saath koi product nahi mila.
+							No products match these filters.{" "}
 						</p>
 					) : (
 						<div className="grid grid-cols-2 gap-x-5 gap-y-10 md:grid-cols-3">

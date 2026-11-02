@@ -73,7 +73,7 @@ export default function HomeSectionsManager() {
 	async function addSection() {
 		setError("");
 		if (!draft.title.trim() || !draft.collection) {
-			setError("Title aur collection zaroori hain");
+			setError("Title and collection are required");
 			return;
 		}
 
@@ -143,7 +143,7 @@ export default function HomeSectionsManager() {
 	}
 
 	async function removeSection(id) {
-		if (!window.confirm("Ye section delete karna hai?")) return;
+		if (!window.confirm("Delete this section?")) return;
 
 		setError("");
 		setBusyId(id);
@@ -167,8 +167,7 @@ export default function HomeSectionsManager() {
 					Home sections
 				</h1>
 				<p className="mt-2 text-[13px] text-neutral-500">
-					Home page par jo rows dikhani hain, unhe yahan add karein aur order
-					set karein.
+					Add the rows you want on the home page here and set their order.
 				</p>
 			</div>
 
@@ -217,7 +216,7 @@ export default function HomeSectionsManager() {
 								setDraft((d) => ({ ...d, showViewAll: e.target.checked }))
 							}
 						/>
-						View All button dikhayein
+						View All button
 					</label>
 
 					<div>
@@ -248,9 +247,7 @@ export default function HomeSectionsManager() {
 			{loading ? (
 				<p className="text-[14px] text-neutral-500">Loading...</p>
 			) : sections.length === 0 ? (
-				<p className="text-[14px] text-neutral-500">
-					Abhi koi section nahi hai.
-				</p>
+				<p className="text-[14px] text-neutral-500">No sections yet.</p>
 			) : (
 				<div className="overflow-x-auto border border-line bg-white">
 					<table className="w-full border-collapse text-[14px]">

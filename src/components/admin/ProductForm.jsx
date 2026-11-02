@@ -587,9 +587,9 @@ export default function ProductForm({ product, productId }) {
 			{/* VARIANT OPTIONS */}
 			<Section title="Variant options">
 				<p className="text-[13px] text-neutral-500">
-					Ye options variants banate hain aur price ya stock badal sakte hain
-					(jaise Size, Dupatta). Option ka naam "Size" ho to SKU mein bhi jata
-					hai.
+					These options create variants and can have their own price and stock
+					(for example Size, Dupatta). If the option is named "Size", it is also
+					included in the SKU.
 				</p>
 
 				{options.map((o) => (
@@ -684,14 +684,14 @@ export default function ProductForm({ product, productId }) {
 						Delete variants
 					</button>
 					<p className="text-[12px] text-neutral-500">
-						Options badlein to dobara Generate karein. Purana price aur stock
-						wapas aa jayega.
+						If you change the options, click Generate again. Existing price and
+						stock
 					</p>
 				</div>
 
 				{rows.length === 0 ? (
 					<p className="text-[14px] text-neutral-500">
-						Abhi koi variant nahi. Options add karke Generate variants dabayein.
+						No variants yet. Add options and click Generate variants.{" "}
 					</p>
 				) : (
 					<div className="overflow-x-auto">
@@ -778,9 +778,9 @@ export default function ProductForm({ product, productId }) {
 			{/* CHOICE GROUPS */}
 			<Section title="Customer add-on choices">
 				<p className="text-[13px] text-neutral-500">
-					Ye variants nahi banate. Price ya stock nahi badalte. Customer sirf ek
-					choice select karta hai (jaise "You may also add": Slip with sleeves,
-					Slip without sleeves).
+					These do not create variants and do not change price or stock. The
+					customer only picks one choice (for example "You may also add": Slip
+					with sleeves,
 				</p>
 
 				{choiceGroups.map((g) => (

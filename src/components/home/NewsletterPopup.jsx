@@ -107,7 +107,7 @@ export default function NewsletterPopup() {
 								THANK YOU FOR SUBSCRIBING!
 							</h2>
 							<p className="mt-4 text-[15px] leading-relaxed text-neutral-700">
-								Aap ko 5% discount code jald mil jayega.
+								You will receive your 5% discount code shortly.
 							</p>
 							<button
 								onClick={close}

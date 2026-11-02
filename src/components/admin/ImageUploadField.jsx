@@ -72,7 +72,7 @@ export default function ImageUploadField({ label, value, onChange, error }) {
 					<input
 						className="w-full border border-neutral-300 bg-white px-3 py-2 text-[13px] outline-none focus:border-black"
 						value={value}
-						placeholder="Ya image URL paste karein"
+						placeholder="Or paste an image URL"
 						onChange={(e) => onChange(e.target.value)}
 					/>
 

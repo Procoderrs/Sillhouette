@@ -107,8 +107,8 @@ export default function SaleManager() {
 			) : visible.length === 0 ? (
 				<p className="text-[14px] text-neutral-500">
 					{filter === "on"
-						? "Abhi koi product sale par nahi hai."
-						: "Koi product nahi mila."}
+						? "No products are on sale right now."
+						: "No products found."}
 				</p>
 			) : (
 				<div className="overflow-x-auto border border-line bg-white">

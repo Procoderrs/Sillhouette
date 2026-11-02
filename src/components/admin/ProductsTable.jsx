@@ -61,7 +61,7 @@ export default function ProductsTable() {
 			try {
 				const res = await fetch("/api/admin/products", { cache: "no-store" });
 				const data = await res.json();
-				if (!res.ok) throw new Error(data.message || "Products load nahi hue");
+				if (!res.ok) throw new Error(data.message || "Could not load products");
 				if (!cancelled) setProducts(data.data);
 			} catch (err) {
 				if (!cancelled) setError(err.message);
@@ -160,7 +160,7 @@ export default function ProductsTable() {
 										colSpan={8}
 										className="px-3 py-6 text-center text-[14px] text-neutral-500"
 									>
-										Koi product nahi mila
+										No products found.
 									</td>
 								</tr>
 							)}

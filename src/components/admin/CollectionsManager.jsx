@@ -42,7 +42,8 @@ export default function CollectionsManager() {
 		try {
 			const res = await fetch("/api/admin/collections", { cache: "no-store" });
 			const data = await res.json();
-			if (!res.ok) throw new Error(data.message || "Collections load nahi hue");
+			if (!res.ok)
+				throw new Error(data.message || "Could not load collections");
 			setItems(data.data);
 			setError("");
 		} catch (err) {
@@ -77,7 +78,7 @@ export default function CollectionsManager() {
 			await load();
 			return true;
 		} catch {
-			setError("Server se connect nahi ho saka");
+			setError("Could not connect to the server");
 			return false;
 		} finally {
 			setBusy(false);
@@ -130,7 +131,7 @@ export default function CollectionsManager() {
 	}
 
 	function remove(item) {
-		if (!window.confirm(`"${item.name}" delete karein?`)) return;
+		if (!window.confirm(` Delete "${item.name}" `)) return;
 		send(`/api/admin/collections/${item._id}`, "DELETE");
 	}
 
@@ -182,9 +183,7 @@ export default function CollectionsManager() {
 			{/* LIST */}
 			{loading && <p className="text-[14px] text-neutral-500">Loading...</p>}
 			{!loading && parents.length === 0 && (
-				<p className="text-[14px] text-neutral-500">
-					Abhi koi collection nahi hai
-				</p>
+				<p className="text-[14px] text-neutral-500">No collections yet</p>
 			)}
 
 			{parents.map((p) => (
@@ -241,7 +240,9 @@ export default function CollectionsManager() {
 					{/* CHILDREN */}
 					<div className="space-y-2 border-t border-line pt-4">
 						{childrenOf(p).length === 0 && (
-							<p className="text-[13px] text-neutral-500">Koi child nahi hai</p>
+							<p className="text-[13px] text-neutral-500">
+								No child collections
+							</p>
 						)}
 						{childrenOf(p).map((c) => (
 							<div

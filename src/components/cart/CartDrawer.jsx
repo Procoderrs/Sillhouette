@@ -82,7 +82,7 @@ export default function CartDrawer() {
 
 				<div className="flex-1 overflow-y-auto px-6 py-4">
 					{items.length === 0 && (
-						<p className="text-[14px] text-neutral-500">Cart khali hai.</p>
+						<p className="text-[14px] text-neutral-500">Your cart is empty.</p>
 					)}
 
 					{loading && lines.length === 0 && (
