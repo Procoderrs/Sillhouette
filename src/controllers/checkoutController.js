@@ -68,6 +68,27 @@ export async function stripeWebhook(request) {
 				await markOrderFailed(obj, "cancelled");
 				break;
 
+			case "payment_intent.succeeded": {
+				const intent = event.data.object;
+				await markOrderPaid({
+					id: intent.id,
+					payment_intent: intent.id,
+					metadata: intent.metadata,
+				});
+				break;
+			}
+			case "payment_intent.payment_failed": {
+				const intent = event.data.object;
+				await markOrderFailed(
+					{
+						id: intent.id,
+						payment_intent: intent.id,
+						metadata: intent.metadata,
+					},
+					"payment_failed",
+				);
+				break;
+			}
 			case "checkout.session.async_payment_failed":
 				await markOrderFailed(obj, "payment_failed");
 				break;

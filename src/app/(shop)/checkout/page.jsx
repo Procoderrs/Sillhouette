@@ -14,9 +14,7 @@ export default async function CheckoutPage({ searchParams }) {
 			<h1 className="mb-8 text-[22px] uppercase tracking-[0.15em]">Checkout</h1>
 
 			{cancelled && (
-				<p className="mb-6 text-[14px] text-sale">
-					Payment cancel ho gayi. Dobara try karein.
-				</p>
+				<p className="mb-6 text-[14px] text-sale">Payment Cancel . Try again</p>
 			)}
 
 			<CheckoutForm pkrPerUsd={settings.pkrPerUsd} />

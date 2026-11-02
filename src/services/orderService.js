@@ -38,105 +38,93 @@ export async function createCheckout({
 	await connectDB();
 
 	const quote = await quoteCart(items);
-	if (quote.items.length === 0) throw new AppError("Cart khali hai", 400);
+	if (quote.items.length === 0) throw new AppError("Your cart is empty", 400);
 
-	// Koi bhi line ok na ho to order nahi banega, user ko cart update karne ko kahenge
-	const problem = quote.items.find((l) => l.status !== "ok");
-	if (problem) {
+	const bad = quote.items.find((l) => l.status !== "ok");
+	if (bad) {
 		throw new AppError(
-			`${problem.name}: ${problem.message ?? "stock badal gaya hai, cart update karein"}`,
+			`${bad.name} is no longer available in this quantity. Please update your cart.`,
 			409,
 		);
 	}
 
 	const settings = await getSettings();
 	const rate = settings.pkrPerUsd;
-	if (!rate) {
+	if (!rate)
 		throw new AppError(
-			"Exchange rate set nahi hai, admin settings check karein",
+			"Exchange rate is not set. Please check the admin settings.",
 			500,
 		);
-	}
-
-	const lines = [];
-	let chargedUsdCents = 0;
-
-	for (const l of quote.items) {
-		const unit = toCents(l.price, rate);
-		lines.push({
-			quantity: l.qty,
-			price_data: {
-				currency: "usd",
-				unit_amount: unit,
-				product_data: {
-					name: l.variant ? `${l.name} (${l.variant})` : l.name,
-					images: l.image ? [l.image] : [],
-				},
-			},
-		});
-		chargedUsdCents += unit * l.qty;
-
-		if (l.expressFee > 0) {
-			const fee = toCents(l.expressFee, rate);
-			lines.push({
-				quantity: 1,
-				price_data: {
-					currency: "usd",
-					unit_amount: fee,
-					product_data: { name: `Express shipping: ${l.name}` },
-				},
-			});
-			chargedUsdCents += fee;
-		}
-	}
 
 	const order = await Order.create({
 		orderNumber: makeOrderNumber(),
-		user: userId,
+		user: userId || undefined,
 		email,
 		phone,
 		shipping: { name, address, city, postalCode, country },
 		items: quote.items.map((l) => ({
 			productId: l.productId,
 			name: l.name,
-			slug: l.slug,
-			image: l.image,
-			sku: l.sku,
 			variant: l.variant,
-			attributes: l.attributes,
+			image: l.image,
 			qty: l.qty,
 			price: l.price,
 			express: l.express,
-			expressFee: l.expressFee,
-			choices: l.choices,
 		})),
 		subtotal: quote.subtotal,
 		expressTotal: quote.expressTotal,
 		total: quote.total,
 		pkrPerUsd: rate,
-		chargedUsdCents,
-		statusHistory: [
-			{ status: "pending_payment", note: "Order created", at: new Date() },
-		],
+		chargedUsdCents: toCents(quote.total, rate),
+		status: "pending_payment",
+		statusHistory: [{ status: "pending_payment", note: "Order created" }],
 	});
 
-	const site = process.env.NEXT_PUBLIC_SITE_URL;
-	const session = await getStripe().checkout.sessions.create({
-		mode: "payment",
-		customer_email: email,
-		client_reference_id: String(order._id),
-		metadata: { orderId: String(order._id) },
-		line_items: lines,
-		success_url: `${site}/orders/${order._id}?paid=1`,
-		cancel_url: `${site}/checkout?cancelled=1`,
-	});
+	const intent = await getStripe().paymentIntents.create(
+		{
+			amount: order.chargedUsdCents,
+			currency: "usd",
+			payment_method_types: ["card"],
+			receipt_email: email,
+			metadata: { orderId: String(order._id) },
+		},
+		{ idempotencyKey: `order-${order._id}` },
+	);
 
-	order.payment.sessionId = session.id;
+	order.payment = { provider: "stripe", paymentIntentId: intent.id };
 	await order.save();
 
-	return { orderId: String(order._id), url: session.url };
+	return { orderId: String(order._id), clientSecret: intent.client_secret };
 }
 
+// Order page khulne par Stripe se payment status check karta hai (webhook late ho to bhi)
+export async function syncPaymentStatus(orderId) {
+	await connectDB();
+	if (!mongoose.isValidObjectId(orderId)) return;
+
+	const order = await Order.findById(orderId).lean();
+	if (
+		!order ||
+		order.status !== "pending_payment" ||
+		!order.payment?.paymentIntentId
+	)
+		return;
+
+	try {
+		const intent = await getStripe().paymentIntents.retrieve(
+			order.payment.paymentIntentId,
+		);
+		if (intent.status === "succeeded") {
+			await markOrderPaid({
+				id: intent.id,
+				payment_intent: intent.id,
+				metadata: intent.metadata,
+			});
+		}
+	} catch (err) {
+		console.error("SYNC_PAYMENT_ERROR:", err);
+	}
+}
 // Webhook: payment complete hone par
 export async function markOrderPaid(session) {
 	await connectDB();

@@ -2,8 +2,20 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+	Elements,
+	PaymentElement,
+	useElements,
+	useStripe,
+} from "@stripe/react-stripe-js";
 import { useCartStore, toApiItem, lineKeyOf } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
+
+const stripePromise = loadStripe(
+	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+);
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -24,20 +36,13 @@ const EMPTY = {
 export default function CheckoutForm({ pkrPerUsd }) {
 	const items = useCartStore((s) => s.items);
 	const itemsKey = JSON.stringify(items);
-
-	const [form, setForm] = useState(EMPTY);
 	const [quote, setQuote] = useState(null);
-	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState("");
-	const [errors, setErrors] = useState({});
 
-	// Cart ka summary server se (prices database se)
 	useEffect(() => {
 		if (items.length === 0) {
 			setQuote(null);
 			return;
 		}
-
 		let cancelled = false;
 		fetch("/api/cart/quote", {
 			method: "POST",
@@ -49,57 +54,16 @@ export default function CheckoutForm({ pkrPerUsd }) {
 				if (!cancelled && res.ok) setQuote(data.data);
 			})
 			.catch(() => {});
-
 		return () => {
 			cancelled = true;
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [itemsKey]);
 
-	function update(e) {
-		setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-	}
-
-	async function handleSubmit(e) {
-		e.preventDefault();
-		setError("");
-		setErrors({});
-		setSubmitting(true);
-
-		try {
-			const res = await fetch("/api/checkout", {
-				method: "POST",
-				headers: JSON_HEADERS,
-				body: JSON.stringify({ ...form, items: items.map(toApiItem) }),
-			});
-
-			const data = await res.json().catch(() => null);
-
-			if (!res.ok || !data) {
-				console.error("Checkout failed:", res.status, data);
-				setErrors(data?.errors || {});
-				setError(
-					data?.message ||
-						`Server error (${res.status}). Terminal logs check karein.`,
-				);
-				setSubmitting(false);
-				return;
-			}
-
-			window.location.href = data.data.url;
-		} catch (err) {
-			console.error("Checkout network error:", err);
-			setError(
-				"Could not reach the server. Check your connection and try again.",
-			);
-			setSubmitting(false);
-		}
-	}
-
 	if (items.length === 0) {
 		return (
 			<div className="space-y-4">
-				<p className="text-[14px]">Aap ki cart khali hai.</p>
+				<p className="text-[14px]">Your cart is empty.</p>
 				<Link href="/" className="btn-primary inline-block">
 					Shop now
 				</Link>
@@ -107,11 +71,102 @@ export default function CheckoutForm({ pkrPerUsd }) {
 		);
 	}
 
+	const usdCents =
+		quote && pkrPerUsd ? Math.round((quote.total / pkrPerUsd) * 100) : 0;
+
+	return (
+		<Elements
+			stripe={stripePromise}
+			options={{
+				mode: "payment",
+				amount: Math.max(usdCents, 50),
+				currency: "usd",
+			}}
+		>
+			<CheckoutFields quote={quote} pkrPerUsd={pkrPerUsd} />
+		</Elements>
+	);
+}
+
+function CheckoutFields({ quote, pkrPerUsd }) {
+	const stripe = useStripe();
+	const elements = useElements();
+	const router = useRouter();
+	const items = useCartStore((s) => s.items);
+
+	const [form, setForm] = useState(EMPTY);
+	const [submitting, setSubmitting] = useState(false);
+	const [error, setError] = useState("");
+	const [errors, setErrors] = useState({});
+
+	function update(e) {
+		setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+	}
+
+	async function handleSubmit(e) {
+		e.preventDefault();
+		if (!stripe || !elements) return;
+
+		setError("");
+		setErrors({});
+		setSubmitting(true);
+
+		// Card details validate karein
+		const { error: submitError } = await elements.submit();
+		if (submitError) {
+			setError(submitError.message);
+			setSubmitting(false);
+			return;
+		}
+
+		// Server par order aur PaymentIntent banayein
+		let data;
+		try {
+			const res = await fetch("/api/checkout", {
+				method: "POST",
+				headers: JSON_HEADERS,
+				body: JSON.stringify({ ...form, items: items.map(toApiItem) }),
+			});
+			data = await res.json().catch(() => null);
+
+			if (!res.ok || !data?.success) {
+				setErrors(data?.errors || {});
+				setError(data?.message || `Could not place order (${res.status})`);
+				setSubmitting(false);
+				return;
+			}
+		} catch {
+			setError("Could not reach the server. Please try again.");
+			setSubmitting(false);
+			return;
+		}
+
+		const { orderId, clientSecret } = data.data;
+
+		// Card se payment karein. Redirect nahi hoga, jab tak 3D Secure na ho.
+		const { error: payError } = await stripe.confirmPayment({
+			elements,
+			clientSecret,
+			confirmParams: {
+				return_url: `${window.location.origin}/orders/${orderId}`,
+			},
+			redirect: "if_required",
+		});
+
+		if (payError) {
+			setError(payError.message);
+			setSubmitting(false);
+			return;
+		}
+
+		router.push(`/orders/${orderId}`);
+	}
+
 	const usd = quote && pkrPerUsd ? (quote.total / pkrPerUsd).toFixed(2) : null;
 
 	return (
 		<div className="grid gap-10 md:grid-cols-[1fr_360px]">
-			<form onSubmit={handleSubmit} className="space-y-5">
+			<form onSubmit={handleSubmit} className="space-y-6">
 				<div className="grid gap-5 md:grid-cols-2">
 					<div>
 						<label className={label}>Full name</label>
@@ -199,14 +254,24 @@ export default function CheckoutForm({ pkrPerUsd }) {
 					)}
 				</div>
 
+				<div className="space-y-3">
+					<p className="text-[12px] uppercase tracking-[0.2em]">Payment</p>
+					<p className="text-[12px] text-neutral-500">
+						All transactions are secure and encrypted.
+					</p>
+					<div className="border border-neutral-300 bg-white p-4">
+						<PaymentElement />
+					</div>
+				</div>
+
 				{error && <p className="text-[14px] text-sale">{error}</p>}
 
 				<button
 					type="submit"
-					disabled={submitting}
+					disabled={submitting || !stripe}
 					className="btn-primary w-full disabled:opacity-50"
 				>
-					{submitting ? "Redirecting to payment..." : "Pay with card"}
+					{submitting ? "Processing..." : "Pay now"}
 				</button>
 			</form>
 
@@ -247,7 +312,8 @@ export default function CheckoutForm({ pkrPerUsd }) {
 						</div>
 						{usd && (
 							<p className="text-[12px] text-neutral-500">
-								Card par approx ${usd} USD charge hoga (1 USD = Rs.{pkrPerUsd})
+								Approx. ${usd} USD will be charged to your card (1 USD = Rs.
+								{pkrPerUsd})
 							</p>
 						)}
 					</div>
