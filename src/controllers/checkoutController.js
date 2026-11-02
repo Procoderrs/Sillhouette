@@ -24,6 +24,7 @@ export async function checkoutCreate(request) {
 		});
 		return Response.json({ success: true, data }, { status: 201 });
 	} catch (error) {
+		console.log("checkout-error", error);
 		return errorResponse(error);
 	}
 }
