@@ -72,19 +72,26 @@ export default function CheckoutForm({ pkrPerUsd }) {
 				headers: JSON_HEADERS,
 				body: JSON.stringify({ ...form, items: items.map(toApiItem) }),
 			});
-			const data = await res.json();
 
-			if (!res.ok) {
-				setErrors(data.errors || {});
-				setError(data.message || "Order could not be placed");
+			const data = await res.json().catch(() => null);
+
+			if (!res.ok || !data) {
+				console.error("Checkout failed:", res.status, data);
+				setErrors(data?.errors || {});
+				setError(
+					data?.message ||
+						`Server error (${res.status}). Terminal logs check karein.`,
+				);
 				setSubmitting(false);
 				return;
 			}
 
-			// Stripe ke payment page par bhejein. Cart payment ke baad order page par khali hogi.
 			window.location.href = data.data.url;
-		} catch {
-			setError("Could not connect to server");
+		} catch (err) {
+			console.error("Checkout network error:", err);
+			setError(
+				"Could not reach the server. Check your connection and try again.",
+			);
 			setSubmitting(false);
 		}
 	}
