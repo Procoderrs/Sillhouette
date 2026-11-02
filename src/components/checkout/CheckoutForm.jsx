@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
@@ -17,6 +17,10 @@ const stripePromise = loadStripe(
 	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
 );
 
+const PAYMENT_OPTIONS = {
+	wallets: { applePay: "never", googlePay: "never" },
+	paymentMethodOrder: ["card"],
+};
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 const field =
@@ -37,6 +41,19 @@ export default function CheckoutForm({ pkrPerUsd }) {
 	const items = useCartStore((s) => s.items);
 	const itemsKey = JSON.stringify(items);
 	const [quote, setQuote] = useState(null);
+
+	const usdCents =
+		quote && pkrPerUsd ? Math.round((quote.total / pkrPerUsd) * 100) : 0;
+
+	const elementsOptions = useMemo(
+		() => ({
+			mode: "payment",
+			amount: Math.max(usdCents, 50),
+			currency: "usd",
+			paymentMethodTypes: ["card"],
+		}),
+		[usdCents],
+	);
 
 	useEffect(() => {
 		if (items.length === 0) {
@@ -71,24 +88,12 @@ export default function CheckoutForm({ pkrPerUsd }) {
 		);
 	}
 
-	const usdCents =
-		quote && pkrPerUsd ? Math.round((quote.total / pkrPerUsd) * 100) : 0;
-
 	return (
-		<Elements
-			stripe={stripePromise}
-			options={{
-				mode: "payment",
-				amount: Math.max(usdCents, 50),
-				currency: "usd",
-				paymentMethodTypes: ["card"],
-			}}
-		>
+		<Elements stripe={stripePromise} options={elementsOptions}>
 			<CheckoutFields quote={quote} pkrPerUsd={pkrPerUsd} />
 		</Elements>
 	);
 }
-
 function CheckoutFields({ quote, pkrPerUsd }) {
 	const stripe = useStripe();
 	const elements = useElements();
@@ -261,12 +266,7 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 						All transactions are secure and encrypted.
 					</p>
 					<div className="border border-neutral-300 bg-white p-4">
-						<PaymentElement
-							options={{
-								wallets: { applePay: "never", googlePay: "never" },
-								paymentMethodOrder: ["card"],
-							}}
-						/>
+						<PaymentElement options={PAYMENT_OPTIONS} />
 					</div>
 				</div>
 
