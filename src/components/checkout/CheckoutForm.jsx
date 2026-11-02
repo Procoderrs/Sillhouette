@@ -213,7 +213,7 @@ export default function CheckoutForm({ pkrPerUsd }) {
 			<aside className="h-fit space-y-4 border border-line bg-white p-6 text-[14px]">
 				<p className="text-[12px] uppercase tracking-[0.2em]">Order summary</p>
 
-				{quote?.items.map((l) => (
+				{quote?.items.map((l, i) => (
 					<div
 						key={`${l.productId ?? "line"}-${i}`}
 						className="flex justify-between gap-4"
