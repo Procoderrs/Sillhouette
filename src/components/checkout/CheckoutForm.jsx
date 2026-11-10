@@ -155,7 +155,7 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 		}
 
 		const { orderId, clientSecret, accessToken } = data.data;
-		const orderPath = `/orders/{orderId}?t=${accessToken}`;
+		const orderPath = `/orders/${orderId}?t=${accessToken}`;
 		console.log("RETURN_URL:", `${window.location.origin}${orderPath}`);
 		// Card se payment. Redirect sirf 3D Secure ke liye hota hai.
 		const { error: payError } = await stripe.confirmPayment({
