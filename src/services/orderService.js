@@ -135,7 +135,7 @@ export async function createCheckout({
 	items,
 }) {
 	await connectDB();
-
+	await expireStalePendingOrders();
 	const quote = await quoteCart(items);
 	if (quote.items.length === 0) throw new AppError("Your cart is empty", 400);
 
@@ -373,4 +373,76 @@ export async function updateOrderStatus(id, status, note = "") {
 	});
 	await order.save();
 	return order;
+}
+
+const PENDING_TTL_MS = 60 * 60 * 1000; // 1 ghanta
+
+// Jo orders 1 ghante se zyada pending hain unhe cancel karein aur reserved stock wapas karein.
+// Har order ko atomically claim karte hain, taake webhook se race na ho.
+export async function expireStalePendingOrders() {
+	await connectDB();
+
+	const cutoff = new Date(Date.now() - PENDING_TTL_MS);
+	const stale = await Order.find(
+		{ status: "pending_payment", createdAt: { $lt: cutoff } },
+		"_id",
+	).lean();
+
+	let count = 0;
+	for (const { _id } of stale) {
+		const claimed = await Order.findOneAndUpdate(
+			{ _id, status: "pending_payment" },
+			{
+				$set: { status: "cancelled", stockReserved: false },
+				$push: {
+					statusHistory: {
+						status: "cancelled",
+						note: "Payment not completed within 1 hour. Stock released.",
+						at: new Date(),
+					},
+				},
+			},
+			{ returnDocument: "before" },
+		);
+
+		// Sirf wahi stock wapas karein jo reserve hua tha (purane orders mein nahi hota)
+		if (claimed) {
+			if (claimed.stockReserved) await releaseStock(claimed.items);
+			count += 1;
+		}
+	}
+	return count;
+}
+
+// Pending order ka PaymentIntent client secret, taake customer dobara pay kar sake
+export async function getRepaymentSecret({ orderId, token, userId }) {
+	await connectDB();
+	if (!mongoose.isValidObjectId(orderId)) return null;
+
+	const order = await Order.findById(orderId).lean();
+	if (!order) return null;
+
+	const isOwner = userId && order.user && String(order.user) === String(userId);
+	const hasToken = Boolean(token) && token === order.accessToken;
+	if (!isOwner && !hasToken) return null;
+
+	if (order.status !== "pending_payment" || !order.payment?.paymentIntentId) {
+		return null;
+	}
+
+	const intent = await getStripe().paymentIntents.retrieve(
+		order.payment.paymentIntentId,
+	);
+
+	// Agar payment pehle hi ho chuki hai to order ko paid karein
+	if (intent.status === "succeeded") {
+		await markOrderPaid({
+			id: intent.id,
+			payment_intent: intent.id,
+			metadata: intent.metadata,
+		});
+		return null;
+	}
+
+	return intent.client_secret;
 }

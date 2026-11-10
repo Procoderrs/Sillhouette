@@ -75,10 +75,13 @@ export default async function OrderPage({ params, searchParams }) {
 					</p>
 				)}
 				{order.status === "pending_payment" && (
-					<p className="pt-2 text-[14px] text-neutral-600">
-						Your payment is not confirmed yet. Please refresh this page in a
-						moment.
-					</p>
+					<div className="space-y-4 border border-neutral-200 p-6">
+						<p className="text-[14px]">
+							Your payment is not complete yet. Pay within 1 hour, otherwise
+							this order will be cancelled.
+						</p>
+						<RepayForm orderId={String(order._id)} token={t} />
+					</div>
 				)}
 				{order.status === "payment_failed" && (
 					<p className="pt-2 text-[14px] text-red-700">

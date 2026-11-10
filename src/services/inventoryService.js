@@ -7,7 +7,7 @@ const SOLD_STATUSES = ["paid", "processing", "shipped", "delivered"];
 
 export async function getInventory() {
 	await connectDB();
-
+	await expireStalePendingOrders();
 	const [products, rows] = await Promise.all([
 		Product.find({})
 			.sort({ name: 1 })

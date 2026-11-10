@@ -1,0 +1,23 @@
+import { getCurrentUser } from "@/lib/session";
+import { getRepaymentSecret } from "@/services/orderService";
+
+export async function POST(request, { params }) {
+	const { id } = await params;
+	const body = await request.json().catch(() => ({}));
+	const user = await getCurrentUser();
+
+	const clientSecret = await getRepaymentSecret({
+		orderId: id,
+		token: body.token,
+		userId: user?._id,
+	});
+
+	if (!clientSecret) {
+		return Response.json(
+			{ success: false, message: "Payment is not available for this order" },
+			{ status: 400 },
+		);
+	}
+
+	return Response.json({ success: true, data: { clientSecret } });
+}
