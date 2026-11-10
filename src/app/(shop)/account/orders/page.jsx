@@ -24,6 +24,9 @@ export default async function AccountOrdersPage() {
 				<h1 className="mt-2 text-[26px] uppercase tracking-[0.15em] md:text-[32px]">
 					My orders
 				</h1>
+				<div className="mb-6 flex justify-between text-[13px] uppercase tracking-[0.15em]">
+					<Link href="/account">← My account</Link>
+				</div>
 			</div>
 
 			{orders.length === 0 ? (
