@@ -9,7 +9,10 @@ import { getSettings } from "@/services/settingService";
 import crypto from "crypto";
 import { ensureCustomerForOrder } from "@/services/customerService";
 import { requestPasswordReset } from "@/services/authService";
-import { sendOrderLinkedEmail } from "@/lib/orderEmail";
+import {
+	sendOrderLinkedEmail,
+	sendOrderConfirmationEmail,
+} from "@/lib/orderEmail";
 import mongoose from "mongoose";
 
 function attrKey(attrs = []) {
@@ -245,44 +248,82 @@ export async function createCheckout({
 }
 
 // Webhook: called when payment completes
+// Webhook: called when payment completes
 export async function markOrderPaid(session) {
 	await connectDB();
 
 	const orderId = session.metadata?.orderId;
-	const order = orderId ? await Order.findById(orderId) : null;
-	if (!order) throw new Error(`Order not found for session ${session.id}`);
-
-	// Webhook dobara aaye ya order already processed ho to kuch na karein
-	if (order.status !== "pending_payment" && order.status !== "cancelled") {
-		return order;
+	if (!orderId || !mongoose.isValidObjectId(orderId)) {
+		throw new Error(`Order not found for session ${session.id}`);
 	}
+
+	const exists = await Order.exists({ _id: orderId });
+	if (!exists) throw new Error(`Order not found for session ${session.id}`);
+
+	// Atomic claim: webhook aur order page ek saath aayein to sirf ek hi kaam karega
+	const before = await Order.findOneAndUpdate(
+		{ _id: orderId, status: { $in: ["pending_payment", "cancelled"] } },
+		{
+			$set: {
+				status: "paid",
+				"payment.paymentIntentId": session.payment_intent ?? "",
+			},
+		},
+		{ returnDocument: "before" },
+	);
+
+	// Already processed (ya dobara aaya webhook)
+	if (!before) return Order.findById(orderId);
 
 	let note = "Payment received";
 
 	// Agar payment cancel ke baad aayi, to stock dobara reserve karne ki koshish karein
-	if (order.status === "cancelled") {
+	if (before.status === "cancelled") {
 		try {
-			await reserveStock(order.items);
-			order.stockReserved = true;
+			await reserveStock(before.items);
+			await Order.updateOne(
+				{ _id: orderId },
+				{ $set: { stockReserved: true } },
+			);
 		} catch {
 			note =
 				"Payment received after cancellation. Stock is insufficient, please review the order.";
 		}
 	}
 
-	order.status = "paid";
-	order.payment.paymentIntentId = session.payment_intent ?? "";
-	order.statusHistory.push({ status: "paid", note, at: new Date() });
-	await order.save();
+	await Order.updateOne(
+		{ _id: orderId },
+		{ $push: { statusHistory: { status: "paid", note, at: new Date() } } },
+	);
 
-	// Empty the server cart of the logged-in user
+	const order = await Order.findById(orderId);
+
+	// Logged-in user ki server cart khali karein
 	if (order.user) {
 		await Cart.updateOne({ user: order.user }, { $set: { items: [] } });
 	}
 
+	// Confirmation email us address par jo order mein use hua tha. Fail ho to bas log karein.
+	try {
+		await sendOrderConfirmationEmail({
+			to: order.email,
+			name: order.shipping?.name,
+			orderNumber: order.orderNumber,
+			items: order.items.map((i) => ({
+				name: i.name,
+				variant: i.variant,
+				qty: i.qty,
+				price: i.price,
+			})),
+			total: order.total,
+			orderUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/orders/${order._id}?t=${order.accessToken}`,
+		});
+	} catch (err) {
+		console.error("ORDER_CONFIRM_EMAIL_ERROR:", err);
+	}
+
 	return order;
 }
-
 // Webhook: called when a card attempt fails or checkout expires
 export async function markOrderFailed(session, status) {
 	await connectDB();
