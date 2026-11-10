@@ -11,6 +11,7 @@ import { ensureCustomerForOrder } from "@/services/customerService";
 import { requestPasswordReset } from "@/services/authService";
 import { sendOrderLinkedEmail } from "@/lib/orderEmail";
 import mongoose from "mongoose";
+
 function attrKey(attrs = []) {
 	return [...attrs]
 		.sort((a, b) => a.name.localeCompare(b.name))
@@ -60,7 +61,8 @@ export async function createCheckout({
 			500,
 		);
 
-	// Logged-in user ka order usi ka hoga. Guest ke liye email se account dhoondein ya banayein.
+	// A logged-in user's order belongs to that user.
+	// For guests, find an existing account by email or create one.
 	let ownerId = userId || null;
 	let customer = null;
 	if (!userId) {
@@ -68,7 +70,7 @@ export async function createCheckout({
 		ownerId = customer.userId;
 	}
 
-	// Guest ko payment ke baad order page dikhane ke liye private token
+	// Private token so a guest can open the order page after payment
 	const accessToken = crypto.randomBytes(24).toString("hex");
 
 	const order = await Order.create({
@@ -111,17 +113,24 @@ export async function createCheckout({
 	order.payment = { provider: "stripe", paymentIntentId: intent.id };
 	await order.save();
 
-	// Emails: fail hon to checkout na ruke
+	// Emails are awaited so Vercel does not freeze the function before they are sent.
+	// A failed email is logged only; it does not fail the checkout.
 	if (customer?.created) {
-		requestPasswordReset({ email: customer.email }).catch((err) =>
-			console.error("SET_PASSWORD_EMAIL_ERROR:", err),
-		);
+		try {
+			await requestPasswordReset({ email: customer.email });
+		} catch (err) {
+			console.error("SET_PASSWORD_EMAIL_ERROR:", err);
+		}
 	} else if (customer) {
-		sendOrderLinkedEmail({
-			to: customer.email,
-			firstName: customer.firstName,
-			orderNumber: order.orderNumber,
-		}).catch((err) => console.error("ORDER_LINK_EMAIL_ERROR:", err));
+		try {
+			await sendOrderLinkedEmail({
+				to: customer.email,
+				firstName: customer.firstName,
+				orderNumber: order.orderNumber,
+			});
+		} catch (err) {
+			console.error("ORDER_LINK_EMAIL_ERROR:", err);
+		}
 	}
 
 	return {
@@ -131,7 +140,8 @@ export async function createCheckout({
 	};
 }
 
-// Order page khulne par Stripe se payment status check karta hai (webhook late ho to bhi)
+// Called when the order page opens. Checks payment status with Stripe,
+// in case the webhook is late.
 export async function syncPaymentStatus(orderId) {
 	await connectDB();
 	if (!mongoose.isValidObjectId(orderId)) return;
@@ -159,7 +169,8 @@ export async function syncPaymentStatus(orderId) {
 		console.error("SYNC_PAYMENT_ERROR:", err);
 	}
 }
-// Webhook: payment complete hone par
+
+// Webhook: called when payment completes
 export async function markOrderPaid(session) {
 	await connectDB();
 
@@ -167,7 +178,7 @@ export async function markOrderPaid(session) {
 	const order = orderId ? await Order.findById(orderId) : null;
 	if (!order) throw new Error(`Order not found for session ${session.id}`);
 
-	// Webhook dobara aaye to dobara kaam na ho
+	// If the webhook arrives again, do not process it twice
 	if (order.status !== "pending_payment") return order;
 
 	let note = "Payment received";
@@ -184,7 +195,7 @@ export async function markOrderPaid(session) {
 			continue;
 		}
 
-		// Stock sirf tab kam hoga jab kafi ho, race condition se bachne ke liye
+		// Reduce stock only when enough is available, to avoid race conditions
 		const res = await Product.updateOne(
 			{ _id: item.productId, [`variants.${idx}.stock`]: { $gte: item.qty } },
 			{ $inc: { [`variants.${idx}.stock`]: -item.qty } },
@@ -200,7 +211,7 @@ export async function markOrderPaid(session) {
 	order.statusHistory.push({ status: "paid", note, at: new Date() });
 	await order.save();
 
-	// Logged-in user ki server cart khali karein
+	// Empty the server cart of the logged-in user
 	if (order.user) {
 		await Cart.updateOne({ user: order.user }, { $set: { items: [] } });
 	}
@@ -208,7 +219,7 @@ export async function markOrderPaid(session) {
 	return order;
 }
 
-// Webhook: session expire ya payment fail hone par
+// Webhook: called when the session expires or payment fails
 export async function markOrderFailed(session, status) {
 	await connectDB();
 

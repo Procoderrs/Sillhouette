@@ -18,7 +18,7 @@ export async function checkoutCreate(request) {
 			return validationResponse(parsed.error.issues);
 		}
 
-		// Agar user logged in hai to uska id lein (guest ho to null)
+		// If the user is logged in, take their id (null for guests)
 		let userId = null;
 		const token = request.cookies.get(COOKIE_NAME)?.value;
 		if (token) {
@@ -99,7 +99,7 @@ export async function stripeWebhook(request) {
 
 		return new Response("ok", { status: 200 });
 	} catch (error) {
-		// 500 dene se Stripe retry karega
+		// Returning 500 makes Stripe retry the webhook
 		console.error("Stripe webhook handling failed:", error);
 		return new Response("Handler error", { status: 500 });
 	}
