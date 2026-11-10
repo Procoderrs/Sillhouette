@@ -1,7 +1,7 @@
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 import { connectDB } from "@/lib/db";
-
+import { expireStalePendingOrders } from "@/services/orderService";
 // In statuses ke orders ko "sold" count kiya jayega
 const SOLD_STATUSES = ["paid", "processing", "shipped", "delivered"];
 
