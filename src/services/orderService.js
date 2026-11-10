@@ -6,6 +6,10 @@ import { AppError } from "@/lib/errors";
 import { getStripe } from "@/lib/stripe";
 import { quoteCart } from "@/services/cartService";
 import { getSettings } from "@/services/settingService";
+import crypto from "crypto";
+import { ensureCustomerForOrder } from "@/services/customerService";
+import { requestPasswordReset } from "@/services/authService";
+import { sendOrderLinkedEmail } from "@/lib/orderEmail";
 import mongoose from "mongoose";
 function attrKey(attrs = []) {
 	return [...attrs]
@@ -56,9 +60,21 @@ export async function createCheckout({
 			500,
 		);
 
+	// Logged-in user ka order usi ka hoga. Guest ke liye email se account dhoondein ya banayein.
+	let ownerId = userId || null;
+	let customer = null;
+	if (!userId) {
+		customer = await ensureCustomerForOrder({ email, name });
+		ownerId = customer.userId;
+	}
+
+	// Guest ko payment ke baad order page dikhane ke liye private token
+	const accessToken = crypto.randomBytes(24).toString("hex");
+
 	const order = await Order.create({
 		orderNumber: makeOrderNumber(),
-		user: userId || undefined,
+		user: ownerId || undefined,
+		accessToken,
 		email,
 		phone,
 		shipping: { name, address, city, postalCode, country },
@@ -95,7 +111,24 @@ export async function createCheckout({
 	order.payment = { provider: "stripe", paymentIntentId: intent.id };
 	await order.save();
 
-	return { orderId: String(order._id), clientSecret: intent.client_secret };
+	// Emails: fail hon to checkout na ruke
+	if (customer?.created) {
+		requestPasswordReset({ email: customer.email }).catch((err) =>
+			console.error("SET_PASSWORD_EMAIL_ERROR:", err),
+		);
+	} else if (customer) {
+		sendOrderLinkedEmail({
+			to: customer.email,
+			firstName: customer.firstName,
+			orderNumber: order.orderNumber,
+		}).catch((err) => console.error("ORDER_LINK_EMAIL_ERROR:", err));
+	}
+
+	return {
+		orderId: String(order._id),
+		clientSecret: intent.client_secret,
+		accessToken,
+	};
 }
 
 // Order page khulne par Stripe se payment status check karta hai (webhook late ho to bhi)
@@ -196,4 +229,34 @@ export async function getOrderById(id) {
 	await connectDB();
 	if (!mongoose.isValidObjectId(id)) return null;
 	return Order.findById(id).lean();
+}
+
+export async function listOrders({ status } = {}) {
+	await connectDB();
+	const filter = status && status !== "all" ? { status } : {};
+	return Order.find(filter).sort({ createdAt: -1 }).limit(200).lean();
+}
+
+export async function updateOrderStatus(id, status, note = "") {
+	await connectDB();
+	if (!mongoose.isValidObjectId(id))
+		throw new AppError("Invalid order id", 400);
+
+	const order = await Order.findById(id);
+	if (!order) throw new AppError("Order not found", 404);
+
+	order.status = status;
+	order.statusHistory.push({
+		status,
+		note: note || `Status changed to ${status}`,
+		at: new Date(),
+	});
+	await order.save();
+	return order;
+}
+
+export async function listOrdersForUser(userId) {
+	await connectDB();
+	if (!mongoose.isValidObjectId(userId)) return [];
+	return Order.find({ user: userId }).sort({ createdAt: -1 }).limit(100).lean();
 }

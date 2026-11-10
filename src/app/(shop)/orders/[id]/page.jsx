@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getOrderById, syncPaymentStatus } from "@/services/orderService";
 import OrderStatus from "@/components/checkout/OrderStatus";
 import { formatPrice } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/session";
+import { searchParamsToUrlQuery } from "next/dist/shared/lib/router/utils/querystring";
 
 const LABELS = {
 	pending_payment: "Payment pending",
@@ -25,15 +27,27 @@ const BADGE = {
 	payment_failed: "border-red-300 bg-red-50 text-red-800",
 };
 
-export default async function OrderPage({ params }) {
+export default async function OrderPage({ params, searchParams }) {
 	const { id } = await params;
+	const { t } = await searchParams;
 
-	// Stripe se payment status check karein (webhook late ho to bhi order update ho)
+	const existing = await getOrderById(id);
+
+	if (!existing) notFound();
+
+	const user = await getCurrentUser();
+	const isOwner = Boolean(
+		user && existing.user && String(user._id) === String(existing.user),
+	);
+	const hasLink = Boolean(
+		t && existing.accessToken && t === existing.accessToken,
+	);
+	if (!isOwner && !hasLink) notFound();
+
+	// Stripe se payment status check karein
 	await syncPaymentStatus(id);
 
 	const raw = await getOrderById(id);
-	if (!raw) notFound();
-
 	const order = JSON.parse(JSON.stringify(raw));
 	const history = [...(order.statusHistory ?? [])].reverse();
 

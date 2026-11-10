@@ -32,6 +32,7 @@ const orderSchema = new mongoose.Schema(
 		user: { type: mongoose.Schema.Types.ObjectId, default: null, index: true },
 		email: { type: String, required: true },
 		phone: { type: String, required: true },
+		accessToken: { type: String, default: "" },
 		shipping: {
 			name: String,
 			address: String,

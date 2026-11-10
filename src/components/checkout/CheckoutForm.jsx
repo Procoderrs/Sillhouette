@@ -154,14 +154,15 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 			return;
 		}
 
-		const { orderId, clientSecret } = data.data;
+		const { orderId, clientSecret, accessToken } = data.data;
+		const orderPath = `/orders/{orderId}?t=${accessToken}`;
 
 		// Card se payment. Redirect sirf 3D Secure ke liye hota hai.
 		const { error: payError } = await stripe.confirmPayment({
 			elements,
 			clientSecret,
 			confirmParams: {
-				return_url: `${window.location.origin}/orders/${orderId}`,
+				return_url: `${window.location.origin}${orderPath}`,
 			},
 			redirect: "if_required",
 		});
@@ -172,7 +173,7 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 			return;
 		}
 
-		router.push(`/orders/${orderId}`);
+		router.push(orderPath);
 	}
 
 	const usd = quote && pkrPerUsd ? (quote.total / pkrPerUsd).toFixed(2) : null;

@@ -11,6 +11,7 @@ const NAV = [
 	{ label: "Home sections", href: "/admin/home-sections" },
 	/* { label: "Banners", href: "/admin/banners" }, */
 	{ label: "Settings", href: "/admin/settings" },
+	{ label: "Orders", href: "/admin/orders" },
 ];
 
 export default function AdminSidebar() {

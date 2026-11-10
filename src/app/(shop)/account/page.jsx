@@ -1,40 +1,76 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import LogoutButton from "@/components/account/LogoutButton";
+import { listOrdersForUser } from "@/services/orderService";
+import { formatPrice } from "@/lib/utils";
+import { ORDER_LABELS, ORDER_BADGE } from "@/lib/orderStatus";
+
 export const metadata = {
-	title: "My Account | Silhouette",
+	title: "My orders | Silhouette",
 };
 
-export default async function AccountPage() {
+export default async function AccountOrdersPage() {
 	const user = await getCurrentUser();
+	if (!user) redirect("/account/login");
 
-	// Middleware bhi ye kaam karta hai, ye second check hai
-	if (!user) {
-		redirect("/account/login");
-	}
+	const orders = JSON.parse(JSON.stringify(await listOrdersForUser(user._id)));
 
 	return (
-		<section className="site-container py-16">
-			<h1 className="text-center text-[28px] tracking-[0.2em]">MY ACCOUNT</h1>
+		<section className="site-container max-w-4xl py-10 md:py-14">
+			<div className="mb-10 border-b border-neutral-200 pb-6">
+				<p className="text-[12px] uppercase tracking-[0.3em] text-neutral-500">
+					Account
+				</p>
+				<h1 className="mt-2 text-[26px] uppercase tracking-[0.15em] md:text-[32px]">
+					My orders
+				</h1>
+			</div>
 
-			<div className="mx-auto mt-12 max-w-md space-y-4 border border-line p-6 text-[15px]">
-				<InfoRow label="First name" value={user.firstName} />
-				<InfoRow label="Last name" value={user.lastName} />
-				<InfoRow label="Email" value={user.email} />
-				<InfoRow label="Role" value={user.role} />
-			</div>
-			<div className="mx-auto mt-8 max-w-md">
-				<LogoutButton />
-			</div>
+			{orders.length === 0 ? (
+				<div className="space-y-5 py-12 text-center">
+					<p className="text-[15px] text-neutral-600">
+						You have not placed any orders yet.
+					</p>
+					<Link href="/" className="btn-primary inline-block">
+						Continue shopping
+					</Link>
+				</div>
+			) : (
+				<ul className="divide-y divide-neutral-200 border-y border-neutral-200">
+					{orders.map((o) => (
+						<li key={o._id}>
+							<Link
+								href={`/orders/${o._id}`}
+								className="flex flex-col gap-3 py-6 transition hover:bg-neutral-50 sm:flex-row sm:items-center sm:justify-between"
+							>
+								<div className="space-y-1">
+									<p className="text-[15px] font-medium tracking-[0.05em]">
+										{o.orderNumber}
+									</p>
+									<p className="text-[13px] text-neutral-500">
+										{new Date(o.createdAt).toLocaleDateString("en-PK", {
+											day: "numeric",
+											month: "short",
+											year: "numeric",
+										})}{" "}
+										· {o.items.reduce((sum, i) => sum + i.qty, 0)} items
+									</p>
+								</div>
+								<div className="flex items-center gap-6">
+									<span
+										className={`border px-2 py-0.5 text-[11px] uppercase tracking-[0.1em] ${ORDER_BADGE[o.status] ?? ""}`}
+									>
+										{ORDER_LABELS[o.status] ?? o.status}
+									</span>
+									<span className="min-w-[90px] text-right text-[15px]">
+										{formatPrice(o.total)}
+									</span>
+								</div>
+							</Link>
+						</li>
+					))}
+				</ul>
+			)}
 		</section>
-	);
-}
-
-function InfoRow({ label, value }) {
-	return (
-		<div className="flex items-center justify-between gap-4">
-			<span className="text-[13px] uppercase tracking-[0.15em]">{label}</span>
-			<span>{value}</span>
-		</div>
 	);
 }
