@@ -375,7 +375,7 @@ export async function updateOrderStatus(id, status, note = "") {
 	return order;
 }
 
-const PENDING_TTL_MS = 60 * 60 * 1000; // 1 ghanta
+const PENDING_TTL_MS = 60 * 1000; // 1 ghanta
 
 // Jo orders 1 ghante se zyada pending hain unhe cancel karein aur reserved stock wapas karein.
 // Har order ko atomically claim karte hain, taake webhook se race na ho.
