@@ -33,6 +33,7 @@ const orderSchema = new mongoose.Schema(
 		email: { type: String, required: true },
 		phone: { type: String, required: true },
 		accessToken: { type: String, default: "" },
+		stockReserved: { type: Boolean, default: false },
 		shipping: {
 			name: String,
 			address: String,
