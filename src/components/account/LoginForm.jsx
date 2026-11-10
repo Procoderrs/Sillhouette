@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const field =
@@ -21,13 +21,22 @@ export default function LoginForm() {
 	const [loading, setLoading] = useState(false);
 
 	// Reset state
-	const [resetStep, setResetStep] = useState("email"); // "email" ya "confirm"
+	const [resetStep, setResetStep] = useState("email"); // "email" or "confirm"
 	const [resetEmail, setResetEmail] = useState("");
 	const [resetCode, setResetCode] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [resetError, setResetError] = useState("");
 	const [resetMessage, setResetMessage] = useState("");
 	const [resetLoading, setResetLoading] = useState(false);
+
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		if (params.get("reset") === "1") {
+			setView("reset");
+			setResetStep("confirm");
+			setResetMessage("Enter your email and the 6-digit code from our email.");
+		}
+	}, []);
 
 	async function handleLogin(e) {
 		e.preventDefault();
@@ -48,7 +57,7 @@ export default function LoginForm() {
 				return;
 			}
 
-			// Middleware ne jo "next" diya tha, wahan bhejein (sirf same site ka path)
+			// Redirect to the "next" value set by middleware (same-site path only)
 			const next = new URLSearchParams(window.location.search).get("next");
 			const safeNext =
 				next && next.startsWith("/") && !next.startsWith("//") ? next : null;
@@ -66,7 +75,7 @@ export default function LoginForm() {
 		}
 	}
 
-	// Step 1: code mangwana
+	// Step 1: request the code
 	async function handleRequestCode(e) {
 		e.preventDefault();
 		setResetError("");
@@ -79,7 +88,7 @@ export default function LoginForm() {
 				body: JSON.stringify({ email: resetEmail }),
 			});
 
-			// Server hamesha same response deta hai, is liye hum bhi same step dikhayein
+			// The server always returns the same response, so we show the same step too
 			setResetMessage(
 				"If this email is registered, a 6-digit code has been sent.",
 			);
@@ -92,7 +101,7 @@ export default function LoginForm() {
 		}
 	}
 
-	// Step 2: code aur naya password bhejna
+	// Step 2: send the code and new password
 	async function handleResetPassword(e) {
 		e.preventDefault();
 		setResetError("");
@@ -111,7 +120,7 @@ export default function LoginForm() {
 			const data = await res.json();
 
 			if (!res.ok || !data.success) {
-				// Validation errors ho to pehla error dikhayein
+				// If there are validation errors, show the first one
 				const firstFieldError = data.errors
 					? Object.values(data.errors)[0]
 					: null;
@@ -119,7 +128,7 @@ export default function LoginForm() {
 				return;
 			}
 
-			// Kamyab reset: login view par wapas, aur success message
+			// Successful reset: go back to the login view and show a success message
 			setNotice("Your password has been reset. Please log in.");
 			resetAndBackToLogin();
 		} catch (err) {
@@ -223,11 +232,11 @@ export default function LoginForm() {
 						</p>
 
 						<div>
-							<label htmlFor="resetEmail" className={labelClass}>
+							<label htmlFor="resetEmailConfirm" className={labelClass}>
 								Email
 							</label>
 							<input
-								id="resetEmail"
+								id="resetEmailConfirm"
 								type="email"
 								required
 								value={resetEmail}
@@ -324,12 +333,3 @@ export default function LoginForm() {
 		</section>
 	);
 }
-
-/* 
-
-
-
-
-
-
-*/

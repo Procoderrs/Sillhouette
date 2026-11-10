@@ -124,7 +124,7 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 		setErrors({});
 		setSubmitting(true);
 
-		// Card details ko validate karein
+		// Validate the card details
 		const { error: submitError } = await elements.submit();
 		if (submitError) {
 			setError(submitError.message);
@@ -132,7 +132,7 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 			return;
 		}
 
-		// Server par order aur PaymentIntent banayein
+		// Create the order and PaymentIntent on the server
 		let data;
 		try {
 			const res = await fetch("/api/checkout", {
@@ -156,13 +156,13 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 
 		const { orderId, clientSecret, accessToken } = data.data;
 		const orderPath = `/orders/${orderId}?t=${accessToken}`;
-		console.log("RETURN_URL:", `${window.location.origin}${orderPath}`);
-		// Card se payment. Redirect sirf 3D Secure ke liye hota hai.
+
+		// Pay with the card. A redirect only happens for 3D Secure.
 		const { error: payError } = await stripe.confirmPayment({
 			elements,
 			clientSecret,
 			confirmParams: {
-				return_url: `${window.location.origin}/checkout`,
+				return_url: `${window.location.origin}${orderPath}`,
 			},
 			redirect: "if_required",
 		});
@@ -173,6 +173,8 @@ function CheckoutFields({ quote, pkrPerUsd }) {
 			return;
 		}
 
+		// Payment is confirmed, so the cart is no longer needed
+		useCartStore.getState().clear();
 		router.push(orderPath);
 	}
 
