@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductPurchase from "@/components/product/ProductPurchase";
-import Reviews from "@/components/product/Reviews";
+import ReviewSection from "@/components/product/Reviews";
 import SimilarProducts from "@/components/product/SimilarProducts";
 import { getProductBySlug } from "@/services/productService";
 import { AppError } from "@/lib/errors";
 import { getSettings } from "@/services/settingService";
-
+import { listReviews } from "@/services/reviewService";
+import { getCurrentUser } from "@/lib/session";
 export default async function ProductPage({ params, searchParams }) {
 	const { slug } = await params;
 	const { sale } = await searchParams;
@@ -24,6 +25,10 @@ export default async function ProductPage({ params, searchParams }) {
 	// ObjectId aur Date client component mein direct nahi jate
 	const plain = JSON.parse(JSON.stringify(product));
 	const settings = JSON.parse(JSON.stringify(await getSettings()));
+	const reviews = JSON.parse(
+		JSON.stringify(await listReviews(String(product._id))),
+	);
+	const user = await getCurrentUser();
 
 	return (
 		<>
@@ -47,7 +52,15 @@ export default async function ProductPage({ params, searchParams }) {
 				</div>
 			</section>
 
-			<Reviews />
+			<section className="site-container pb-16">
+				<ReviewSection
+					productId={String(plain._id)}
+					avgRating={plain.avgRating ?? 0}
+					reviewCount={plain.reviewCount ?? 0}
+					reviews={reviews}
+				/>
+			</section>
+
 			<SimilarProducts products={[]} />
 		</>
 	);

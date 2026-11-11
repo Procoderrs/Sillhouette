@@ -25,6 +25,8 @@ const variantSchema = new mongoose.Schema({
 	price: { type: Number, required: true, min: 1 },
 	salePrice: { type: Number, min: 1, default: null },
 	stock: { type: Number, min: 0, default: 0 },
+	avgRating: { type: Number, default: 0 },
+	reviewCount: { type: Number, default: 0 },
 });
 
 const optionSchema = new mongoose.Schema(
