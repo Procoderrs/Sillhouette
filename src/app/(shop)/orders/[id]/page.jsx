@@ -6,7 +6,7 @@ import OrderStatus from "@/components/checkout/OrderStatus";
 import { formatPrice } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/session";
 import { searchParamsToUrlQuery } from "next/dist/shared/lib/router/utils/querystring";
-
+import CancelOrderButton from "@/components/checkout/CancelOrderButton";
 const LABELS = {
 	pending_payment: "Payment pending",
 	paid: "Paid",
@@ -88,6 +88,16 @@ export default async function OrderPage({ params, searchParams }) {
 						Your payment failed. Please try again.
 					</p>
 				)}
+
+				{/* ...items list aur summary ke baad... */}
+
+				{["pending_payment", "paid"].includes(order.status) && (
+					<div className="pt-8">
+						<CancelOrderButton orderId={String(order._id)} token={t} />
+					</div>
+				)}
+
+				{/* Continue shopping button */}
 			</div>
 
 			<div className="grid gap-12 md:grid-cols-[1fr_360px]">

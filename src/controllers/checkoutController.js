@@ -5,6 +5,7 @@ import {
 	createCheckout,
 	markOrderPaid,
 	markOrderFailed,
+	recordRefundEvent,
 } from "@/services/orderService";
 import { getStripe } from "@/lib/stripe";
 
@@ -93,6 +94,19 @@ export async function stripeWebhook(request) {
 				await markOrderFailed(obj, "payment_failed");
 				break;
 
+			case "charge.refunded":
+				await recordRefundEvent(
+					obj.payment_intent,
+					"Refund completed. Amount has been returned to the card.",
+				);
+				break;
+
+			case "refund.failed":
+				await recordRefundEvent(
+					obj.payment_intent,
+					"Refund failed. Please refund manually from Stripe.",
+				);
+				break;
 			default:
 				break;
 		}

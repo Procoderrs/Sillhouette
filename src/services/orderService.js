@@ -362,7 +362,8 @@ export async function updateOrderStatus(id, status, note = "") {
 	const order = await Order.findById(id);
 	if (!order) throw new AppError("Order not found", 404);
 
-	// Admin ke cancel karne par reserved stock wapas
+	const wasPaid = order.status === "paid";
+
 	if (status === "cancelled") await releaseOrderStock(order);
 
 	order.status = status;
@@ -372,6 +373,10 @@ export async function updateOrderStatus(id, status, note = "") {
 		at: new Date(),
 	});
 	await order.save();
+
+	// Paid order cancel hua to refund
+	if (status === "cancelled" && wasPaid) await startRefund(order);
+
 	return order;
 }
 
@@ -445,4 +450,129 @@ export async function getRepaymentSecret({ orderId, token, userId }) {
 	}
 
 	return intent.client_secret;
+}
+
+const CUSTOMER_CANCELLABLE = ["pending_payment", "paid"];
+
+// Paid order ka full refund shuru karein. Webhook se final status aayega.
+async function startRefund(order) {
+	if (!order.payment?.paymentIntentId) return;
+
+	try {
+		await getStripe().refunds.create(
+			{ payment_intent: order.payment.paymentIntentId },
+			{ idempotencyKey: `refund-${order._id}` },
+		);
+		await Order.updateOne(
+			{ _id: order._id },
+			{
+				$push: {
+					statusHistory: {
+						status: "cancelled",
+						note: "Refund started. Amount will return to the card in 5 to 10 business days.",
+						at: new Date(),
+					},
+				},
+			},
+		);
+	} catch (err) {
+		console.error("REFUND_START_ERROR:", err);
+		await Order.updateOne(
+			{ _id: order._id },
+			{
+				$push: {
+					statusHistory: {
+						status: "cancelled",
+						note: "Refund could not be started. Please refund manually from Stripe.",
+						at: new Date(),
+					},
+				},
+			},
+		);
+	}
+}
+
+// Customer ka cancel (order page se)
+export async function cancelOrderByCustomer({ orderId, token, userId }) {
+	await connectDB();
+	if (!mongoose.isValidObjectId(orderId)) {
+		throw new AppError("Order not found", 404);
+	}
+
+	const order = await Order.findById(orderId);
+	if (!order) throw new AppError("Order not found", 404);
+
+	const isOwner = userId && order.user && String(order.user) === String(userId);
+	const hasToken = Boolean(token) && token === order.accessToken;
+	if (!isOwner && !hasToken) throw new AppError("Order not found", 404);
+
+	if (!CUSTOMER_CANCELLABLE.includes(order.status)) {
+		throw new AppError(
+			"This order can no longer be cancelled. Please contact us.",
+			409,
+		);
+	}
+
+	// Double click ya webhook race se bachne ke liye atomic claim
+	const claimed = await Order.findOneAndUpdate(
+		{ _id: order._id, status: { $in: CUSTOMER_CANCELLABLE } },
+		{ $set: { status: "cancelled", stockReserved: false } },
+		{ returnDocument: "before" },
+	);
+	if (!claimed) throw new AppError("This order is already cancelled", 409);
+
+	// Stock wapas
+	if (claimed.stockReserved) await releaseStock(claimed.items);
+
+	if (claimed.status === "paid") {
+		await Order.updateOne(
+			{ _id: order._id },
+			{
+				$push: {
+					statusHistory: {
+						status: "cancelled",
+						note: "Cancelled by customer.",
+						at: new Date(),
+					},
+				},
+			},
+		);
+		await startRefund(claimed);
+	} else {
+		// Payment abhi nahi hui: PaymentIntent cancel karein taake late payment na ho
+		if (claimed.payment?.paymentIntentId) {
+			try {
+				await getStripe().paymentIntents.cancel(
+					claimed.payment.paymentIntentId,
+				);
+			} catch (err) {
+				console.error("PI_CANCEL_ERROR:", err);
+			}
+		}
+		await Order.updateOne(
+			{ _id: order._id },
+			{
+				$push: {
+					statusHistory: {
+						status: "cancelled",
+						note: "Cancelled by customer before payment.",
+						at: new Date(),
+					},
+				},
+			},
+		);
+	}
+
+	return Order.findById(order._id).lean();
+}
+
+// Webhook se refund ka result history mein add karein
+export async function recordRefundEvent(paymentIntentId, note) {
+	await connectDB();
+	if (!paymentIntentId) return;
+
+	await Order.updateOne(
+		{ "payment.paymentIntentId": paymentIntentId },
+		{ $push: { statusHistory: { status: "cancelled", note, at: new Date() } } },
+	);
 }

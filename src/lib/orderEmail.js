@@ -1,17 +1,11 @@
-import { Resend } from "resend";
 import { formatPrice } from "@/lib/utils";
-
-function getFrom() {
-	return process.env.EMAIL_FROM || "Silhouette <onboarding@resend.dev>";
-}
+import { sendMail } from "@/lib/mailer";
 
 // Existing account ko order attach hone par
 export async function sendOrderLinkedEmail({ to, firstName, orderNumber }) {
-	const resend = new Resend(process.env.RESEND_API_KEY);
 	const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-	const { error } = await resend.emails.send({
-		from: getFrom(),
+	await sendMail({
 		to,
 		subject: `Order ${orderNumber} added to your account`,
 		html: `
@@ -21,12 +15,9 @@ export async function sendOrderLinkedEmail({ to, firstName, orderNumber }) {
 			<p>If this was not you, please contact us.</p>
 		`,
 	});
-
-	// Resend returns errors instead of throwing, so throw here for the caller to log
-	if (error) throw new Error(error.message);
 }
 
-// Payment complete hone par, us email par jo order mein use hua tha
+// Payment complete hone par confirmation
 export async function sendOrderConfirmationEmail({
 	to,
 	name,
@@ -35,8 +26,6 @@ export async function sendOrderConfirmationEmail({
 	total,
 	orderUrl,
 }) {
-	const resend = new Resend(process.env.RESEND_API_KEY);
-
 	const rows = items
 		.map(
 			(i) => `
@@ -48,8 +37,7 @@ export async function sendOrderConfirmationEmail({
 		)
 		.join("");
 
-	const { error } = await resend.emails.send({
-		from: getFrom(),
+	await sendMail({
 		to,
 		subject: `Order ${orderNumber} confirmed`,
 		html: `
@@ -76,6 +64,4 @@ export async function sendOrderConfirmationEmail({
 			<p>If you have any questions, please contact us.</p>
 		`,
 	});
-
-	if (error) throw new Error(error.message);
 }
