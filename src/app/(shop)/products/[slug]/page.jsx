@@ -9,6 +9,7 @@ import { AppError } from "@/lib/errors";
 import { getSettings } from "@/services/settingService";
 import { listReviews } from "@/services/reviewService";
 import { getCurrentUser } from "@/lib/session";
+import { getSimilarProducts } from "@/services/similarProductService";
 export default async function ProductPage({ params, searchParams }) {
 	const { slug } = await params;
 	const { sale } = await searchParams;
@@ -24,6 +25,7 @@ export default async function ProductPage({ params, searchParams }) {
 
 	// ObjectId aur Date client component mein direct nahi jate
 	const plain = JSON.parse(JSON.stringify(product));
+	const similar = JSON.parse(JSON.stringify(await getSimilarProducts(product)));
 	const settings = JSON.parse(JSON.stringify(await getSettings()));
 	const reviews = JSON.parse(
 		JSON.stringify(await listReviews(String(product._id))),
@@ -61,7 +63,7 @@ export default async function ProductPage({ params, searchParams }) {
 				/>
 			</section>
 
-			<SimilarProducts products={[]} />
+			<SimilarProducts products={similar} />
 		</>
 	);
 }
